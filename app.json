@@ -20,10 +20,19 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.vincelu299.audioexampleexpo13"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3d4800ab-fc85-4191-bb0e-e778c5a0b3ba"
+      }
+    },
+    "plugins": [
+      "@mykin-ai/expo-audio-stream"
+    ]
   }
 }

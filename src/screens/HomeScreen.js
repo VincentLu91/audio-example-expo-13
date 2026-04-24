@@ -1,0 +1,15 @@
+import { Button, Text } from "react-native";
+import Screen from "../components/Screen";
+import { ROUTES } from "../constants/routes";
+
+export default function HomeScreen({ navigation }) {
+  return (
+    <Screen>
+      <Text>Home Screen</Text>
+      <Button
+        title="Go to details"
+        onPress={() => navigation.navigate(ROUTES.DETAILS)}
+      />
+    </Screen>
+  );
+}
