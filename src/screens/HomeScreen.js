@@ -10,6 +10,10 @@ export default function HomeScreen({ navigation }) {
         title="Go to details"
         onPress={() => navigation.navigate(ROUTES.DETAILS)}
       />
+      <Button
+        title="Live Transcription"
+        onPress={() => navigation.navigate(ROUTES.LIVE_TRANSCRIPTION)}
+      />
     </Screen>
   );
 }
