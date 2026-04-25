@@ -14,6 +14,10 @@ export default function HomeScreen({ navigation }) {
         title="Live Transcription"
         onPress={() => navigation.navigate(ROUTES.LIVE_TRANSCRIPTION)}
       />
+      <Button
+        title="Player"
+        onPress={() => navigation.navigate(ROUTES.PLAYER)}
+      />
     </Screen>
   );
 }

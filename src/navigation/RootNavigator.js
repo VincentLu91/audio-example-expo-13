@@ -5,6 +5,7 @@ import { ROUTES } from "../constants/routes";
 import HomeScreen from "../screens/HomeScreen";
 import DetailsScreen from "../screens/DetailsScreen";
 import LiveTranscriptionScreen from "../screens/LiveTranscriptionScreen";
+import PlayerScreen from "../screens/PlayerScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -28,6 +29,11 @@ export default function RootNavigator() {
           name={ROUTES.DETAILS}
           component={DetailsScreen}
           options={{ title: "Details" }}
+        />
+        <Stack.Screen
+          name={ROUTES.PLAYER}
+          component={PlayerScreen}
+          options={{ title: "Player" }}
         />
       </Stack.Navigator>
     </NavigationContainer>
