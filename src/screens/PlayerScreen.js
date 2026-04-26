@@ -41,6 +41,22 @@ export default function PlayerScreen() {
         }}
       />
       <Button
+        title="-10s"
+        onPress={() => {
+          const nextTime = Math.max(0, status.currentTime - 10);
+          player.seekTo(nextTime);
+        }}
+      />
+
+      <Button
+        title="+10s"
+        onPress={() => {
+          const duration = status.duration || 0;
+          const nextTime = Math.min(duration, status.currentTime + 10);
+          player.seekTo(nextTime);
+        }}
+      />
+      <Button
         title="Restart"
         onPress={() => {
           player.seekTo(0);
