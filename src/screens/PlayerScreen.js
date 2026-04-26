@@ -36,90 +36,82 @@ export default function PlayerScreen() {
   const duration = status.duration || 0;
   const currentTime = isSeeking ? seekValue : status.currentTime || 0;
 
-  function handleSeek(event) {
-    if (!duration || duration <= 0 || progressBarWidth <= 0) {
-      return;
-    }
-
-    const tapX = event.nativeEvent.locationX;
-    const seekRatio = Math.max(0, Math.min(tapX / progressBarWidth, 1));
-    const seekTime = seekRatio * duration;
-
-    player.seekTo(seekTime);
-  }
-
   return (
     <Screen>
-      <Text style={styles.title}>Player Screen</Text>
+      <View style={styles.playerCard}>
+        <Text style={styles.title}>Player Screen</Text>
 
-      <Text>Status: {status.playing ? "Playing" : "Paused"}</Text>
+        <Text style={styles.statusText}>
+          Status: {status.playing ? "Playing" : "Paused"}
+        </Text>
 
-      <View style={styles.timeRow}>
-        <Text>{formatTime(currentTime)}</Text>
-        <Text>{formatTime(duration)}</Text>
-      </View>
+        <View style={styles.timeRow}>
+          <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+          <Text style={styles.timeText}>{formatTime(duration)}</Text>
+        </View>
 
-      <Slider
-        style={styles.slider}
-        minimumValue={0}
-        maximumValue={duration || 1}
-        value={Math.min(currentTime, duration || 1)}
-        minimumTrackTintColor="#4f46e5"
-        maximumTrackTintColor="#d1d5db"
-        thumbTintColor="#4f46e5"
-        disabled={!duration}
-        onSlidingStart={() => {
-          setIsSeeking(true);
-          setSeekValue(status.currentTime || 0);
-        }}
-        onValueChange={(value) => {
-          setSeekValue(value);
-        }}
-        onSlidingComplete={async (value) => {
-          setSeekValue(value);
-          await player.seekTo(value);
+        <Slider
+          style={styles.slider}
+          minimumValue={0}
+          maximumValue={duration || 1}
+          value={Math.min(currentTime, duration || 1)}
+          minimumTrackTintColor="#4f46e5"
+          maximumTrackTintColor="#d1d5db"
+          thumbTintColor="#4f46e5"
+          disabled={!duration}
+          onSlidingStart={() => {
+            setIsSeeking(true);
+            setSeekValue(status.currentTime || 0);
+          }}
+          onValueChange={(value) => {
+            setSeekValue(value);
+          }}
+          onSlidingComplete={async (value) => {
+            setSeekValue(value);
+            await player.seekTo(value);
 
-          setTimeout(() => {
-            setIsSeeking(false);
-          }, 200);
-        }}
-      />
+            setTimeout(() => {
+              setIsSeeking(false);
+            }, 200);
+          }}
+        />
 
-      <View style={styles.controlsRow}>
-        <PlayerButton
-          label={status.playing ? "Pause" : "Play"}
-          onPress={() => {
-            if (status.playing) {
-              player.pause();
-            } else {
+        <View style={styles.controlsRow}>
+          <PlayerButton
+            label={status.playing ? "Pause" : "Play"}
+            onPress={() => {
+              if (status.playing) {
+                player.pause();
+              } else {
+                player.play();
+              }
+            }}
+          />
+
+          <PlayerButton
+            label="Restart"
+            onPress={async () => {
+              await player.seekTo(0);
               player.play();
-            }
-          }}
-        />
+            }}
+          />
+        </View>
 
-        <PlayerButton
-          label="Restart"
-          onPress={async () => {
-            await player.seekTo(0);
-            player.play();
-          }}
-        />
-      </View>
+        <View style={styles.controlsRow}>
+          <PlayerButton
+            label="-10s"
+            onPress={async () => {
+              await player.seekTo(Math.max(currentTime - 10, 0));
+            }}
+          />
 
-      <View style={styles.controlsRow}>
-        <PlayerButton
-          label="-10s"
-          onPress={async () => {
-            await player.seekTo(Math.max(currentTime - 10, 0));
-          }}
-        />
-
-        <PlayerButton
-          label="+10s"
-          onPress={async () => {
-            await player.seekTo(Math.min(currentTime + 10, duration));
-          }}
-        />
+          <PlayerButton
+            label="+10s"
+            onPress={async () => {
+              await player.seekTo(Math.min(currentTime + 10, duration));
+            }}
+          />
+        </View>
       </View>
     </Screen>
   );
@@ -127,9 +119,10 @@ export default function PlayerScreen() {
 
 const styles = StyleSheet.create({
   title: {
+    color: "white",
     fontSize: 24,
     fontWeight: "700",
-    marginBottom: 24,
+    marginBottom: 16,
   },
 
   timeRow: {
@@ -140,35 +133,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
 
-  progressTouchArea: {
-    width: "100%",
-    height: 28,
-    justifyContent: "center",
-    marginVertical: 16,
-  },
-
-  progressTrack: {
-    width: "100%",
-    height: 8,
-    backgroundColor: "#ddd",
-    borderRadius: 999,
-    overflow: "hidden",
-  },
-
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#333",
-    borderRadius: 999,
-  },
-
-  progressThumb: {
-    position: "absolute",
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: "#333",
-    marginLeft: -8,
-  },
   slider: {
     width: "100%",
     height: 40,
@@ -194,5 +158,24 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  playerCard: {
+    width: "100%",
+    padding: 20,
+    borderRadius: 20,
+    backgroundColor: "#111827",
+    borderWidth: 1,
+    borderColor: "#374151",
+    gap: 8,
+  },
+  statusText: {
+    color: "#d1d5db",
+    fontSize: 16,
+  },
+
+  timeText: {
+    color: "#f9fafb",
+    fontSize: 16,
+    fontWeight: "500",
   },
 });
