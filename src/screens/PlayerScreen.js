@@ -53,13 +53,17 @@ export default function PlayerScreen() {
         <Text>{formatTime(duration)}</Text>
       </View>
       <Pressable
-        style={styles.progressTrack}
+        style={styles.progressTouchArea}
         onLayout={(event) => {
           setProgressBarWidth(event.nativeEvent.layout.width);
         }}
         onPress={handleSeek}
       >
-        <View style={[styles.progressFill, { width: progressPercent }]} />
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: progressPercent }]} />
+        </View>
+
+        <View style={[styles.progressThumb, { left: progressPercent }]} />
       </Pressable>
 
       <Button
@@ -112,17 +116,33 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 6,
   },
+  progressTouchArea: {
+    width: "100%",
+    height: 28,
+    justifyContent: "center",
+    marginVertical: 16,
+  },
+
   progressTrack: {
     width: "100%",
-    height: 12,
+    height: 8,
     backgroundColor: "#ddd",
     borderRadius: 999,
     overflow: "hidden",
-    marginVertical: 16,
   },
+
   progressFill: {
     height: "100%",
     backgroundColor: "#333",
     borderRadius: 999,
+  },
+
+  progressThumb: {
+    position: "absolute",
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#333",
+    marginLeft: -8,
   },
 });
