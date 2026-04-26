@@ -1,5 +1,5 @@
-import { View, Text, Button, StyleSheet, Pressable } from "react-native";
 import { useState } from "react";
+import { View, Text, Button, StyleSheet, Pressable } from "react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 
 import Screen from "../components/Screen";
@@ -28,7 +28,6 @@ export default function PlayerScreen() {
   const duration = status.duration ?? 0;
 
   const progress = duration > 0 ? Math.min(currentTime / duration, 1) : 0;
-
   const progressPercent = `${progress * 100}%`;
 
   function handleSeek(event) {
@@ -48,10 +47,12 @@ export default function PlayerScreen() {
       <Text style={styles.title}>Player Screen</Text>
 
       <Text>Status: {status.playing ? "Playing" : "Paused"}</Text>
+
       <View style={styles.timeRow}>
         <Text>{formatTime(currentTime)}</Text>
         <Text>{formatTime(duration)}</Text>
       </View>
+
       <Pressable
         style={styles.progressTouchArea}
         onLayout={(event) => {
@@ -76,10 +77,11 @@ export default function PlayerScreen() {
           }
         }}
       />
+
       <Button
         title="-10s"
         onPress={() => {
-          const nextTime = Math.max(0, status.currentTime - 10);
+          const nextTime = Math.max(0, currentTime - 10);
           player.seekTo(nextTime);
         }}
       />
@@ -87,11 +89,11 @@ export default function PlayerScreen() {
       <Button
         title="+10s"
         onPress={() => {
-          const duration = status.duration || 0;
-          const nextTime = Math.min(duration, status.currentTime + 10);
+          const nextTime = Math.min(duration, currentTime + 10);
           player.seekTo(nextTime);
         }}
       />
+
       <Button
         title="Restart"
         onPress={() => {
@@ -109,6 +111,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 24,
   },
+
   timeRow: {
     width: "100%",
     flexDirection: "row",
@@ -116,6 +119,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 6,
   },
+
   progressTouchArea: {
     width: "100%",
     height: 28,
