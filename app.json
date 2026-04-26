@@ -33,7 +33,8 @@
     },
     "plugins": [
       "@mykin-ai/expo-audio-stream",
-      "expo-audio"
+      "expo-audio",
+      "expo-font"
     ]
   }
 }
