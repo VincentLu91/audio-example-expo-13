@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { View, Text, Button, StyleSheet, Pressable } from "react-native";
+import { View, Text, Button, StyleSheet } from "react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import Slider from "@react-native-community/slider";
 
 import Screen from "../components/Screen";
 
@@ -21,14 +22,11 @@ function formatTime(seconds) {
 export default function PlayerScreen() {
   const player = useAudioPlayer(audioSource);
   const status = useAudioPlayerStatus(player);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekValue, setSeekValue] = useState(0);
 
-  const [progressBarWidth, setProgressBarWidth] = useState(0);
-
-  const currentTime = status.currentTime ?? 0;
-  const duration = status.duration ?? 0;
-
-  const progress = duration > 0 ? Math.min(currentTime / duration, 1) : 0;
-  const progressPercent = `${progress * 100}%`;
+  const duration = status.duration || 0;
+  const currentTime = isSeeking ? seekValue : status.currentTime || 0;
 
   function handleSeek(event) {
     if (!duration || duration <= 0 || progressBarWidth <= 0) {
@@ -53,19 +51,31 @@ export default function PlayerScreen() {
         <Text>{formatTime(duration)}</Text>
       </View>
 
-      <Pressable
-        style={styles.progressTouchArea}
-        onLayout={(event) => {
-          setProgressBarWidth(event.nativeEvent.layout.width);
+      <Slider
+        style={styles.slider}
+        minimumValue={0}
+        maximumValue={duration || 1}
+        value={Math.min(currentTime, duration || 1)}
+        minimumTrackTintColor="#4f46e5"
+        maximumTrackTintColor="#d1d5db"
+        thumbTintColor="#4f46e5"
+        disabled={!duration}
+        onSlidingStart={() => {
+          setIsSeeking(true);
+          setSeekValue(status.currentTime || 0);
         }}
-        onPress={handleSeek}
-      >
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: progressPercent }]} />
-        </View>
+        onValueChange={(value) => {
+          setSeekValue(value);
+        }}
+        onSlidingComplete={async (value) => {
+          setSeekValue(value);
+          await player.seekTo(value);
 
-        <View style={[styles.progressThumb, { left: progressPercent }]} />
-      </Pressable>
+          setTimeout(() => {
+            setIsSeeking(false);
+          }, 200);
+        }}
+      />
 
       <Button
         title={status.playing ? "Pause" : "Play"}
@@ -148,5 +158,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "#333",
     marginLeft: -8,
+  },
+  slider: {
+    width: "100%",
+    height: 40,
+    marginTop: 8,
+    marginBottom: 8,
   },
 });
