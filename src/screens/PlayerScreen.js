@@ -1,4 +1,5 @@
-import { Text, StyleSheet } from "react-native";
+import React from "react";
+import { View, Text, Button, StyleSheet } from "react-native";
 import Screen from "../components/Screen";
 import PlayerControls from "../features/player/components/PlayerControls";
 

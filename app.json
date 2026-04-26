@@ -32,7 +32,8 @@
       }
     },
     "plugins": [
-      "@mykin-ai/expo-audio-stream"
+      "@mykin-ai/expo-audio-stream",
+      "expo-audio"
     ]
   }
 }
