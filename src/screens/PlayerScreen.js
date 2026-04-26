@@ -2,8 +2,6 @@ import { useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import Slider from "@react-native-community/slider";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { useFonts } from "expo-font";
 
 import Screen from "../components/Screen";
 
@@ -21,18 +19,15 @@ function formatTime(seconds) {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-function PlayerButton({ label, iconName, onPress }) {
+function PlayerButton({ label, onPress }) {
   return (
     <Pressable style={styles.playerButton} onPress={onPress}>
-      <Ionicons name="play-circle" size={48} color="white" />
       <Text style={styles.playerButtonText}>{label}</Text>
     </Pressable>
   );
 }
 
 export default function PlayerScreen() {
-  const [fontsLoaded] = useFonts(Ionicons.font);
-
   const player = useAudioPlayer(audioSource);
   const status = useAudioPlayerStatus(player);
   const [isSeeking, setIsSeeking] = useState(false);
@@ -44,10 +39,11 @@ export default function PlayerScreen() {
   return (
     <Screen>
       <View style={styles.playerCard}>
-        <Text style={styles.title}>Audio Player</Text>
-        <Ionicons name="play-circle" size={48} color="white" />
+        <Text style={styles.title}>Player Screen</Text>
 
-        <Text style={styles.statusText}></Text>
+        <Text style={styles.statusText}>
+          Status: {status.playing ? "Playing" : "Paused"}
+        </Text>
 
         <View style={styles.timeRow}>
           <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
@@ -83,7 +79,6 @@ export default function PlayerScreen() {
         <View style={styles.controlsRow}>
           <PlayerButton
             label={status.playing ? "Pause" : "Play"}
-            iconName={status.playing ? "pause" : "play-arrow"}
             onPress={() => {
               if (status.playing) {
                 player.pause();
