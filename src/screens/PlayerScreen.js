@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, Button, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import Slider from "@react-native-community/slider";
 
@@ -17,6 +17,14 @@ function formatTime(seconds) {
   const secs = Math.floor(seconds % 60);
 
   return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+function PlayerButton({ label, onPress }) {
+  return (
+    <Pressable style={styles.playerButton} onPress={onPress}>
+      <Text style={styles.playerButtonText}>{label}</Text>
+    </Pressable>
+  );
 }
 
 export default function PlayerScreen() {
@@ -77,40 +85,42 @@ export default function PlayerScreen() {
         }}
       />
 
-      <Button
-        title={status.playing ? "Pause" : "Play"}
-        onPress={() => {
-          if (status.playing) {
-            player.pause();
-          } else {
+      <View style={styles.controlsRow}>
+        <PlayerButton
+          label={status.playing ? "Pause" : "Play"}
+          onPress={() => {
+            if (status.playing) {
+              player.pause();
+            } else {
+              player.play();
+            }
+          }}
+        />
+
+        <PlayerButton
+          label="Restart"
+          onPress={async () => {
+            await player.seekTo(0);
             player.play();
-          }
-        }}
-      />
+          }}
+        />
+      </View>
 
-      <Button
-        title="-10s"
-        onPress={() => {
-          const nextTime = Math.max(0, currentTime - 10);
-          player.seekTo(nextTime);
-        }}
-      />
+      <View style={styles.controlsRow}>
+        <PlayerButton
+          label="-10s"
+          onPress={async () => {
+            await player.seekTo(Math.max(currentTime - 10, 0));
+          }}
+        />
 
-      <Button
-        title="+10s"
-        onPress={() => {
-          const nextTime = Math.min(duration, currentTime + 10);
-          player.seekTo(nextTime);
-        }}
-      />
-
-      <Button
-        title="Restart"
-        onPress={() => {
-          player.seekTo(0);
-          player.play();
-        }}
-      />
+        <PlayerButton
+          label="+10s"
+          onPress={async () => {
+            await player.seekTo(Math.min(currentTime + 10, duration));
+          }}
+        />
+      </View>
     </Screen>
   );
 }
@@ -164,5 +174,25 @@ const styles = StyleSheet.create({
     height: 40,
     marginTop: 8,
     marginBottom: 8,
+  },
+  controlsRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 12,
+  },
+
+  playerButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: "#4f46e5",
+    alignItems: "center",
+  },
+
+  playerButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
