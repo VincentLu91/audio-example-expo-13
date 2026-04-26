@@ -1,13 +1,27 @@
-import React from "react";
-import { View, Text, Button, StyleSheet } from "react-native";
+import { Text, Button, StyleSheet } from "react-native";
+import { useAudioPlayer } from "expo-audio";
+
 import Screen from "../components/Screen";
-import PlayerControls from "../features/player/components/PlayerControls";
+
+const audioSource =
+  "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
 
 export default function PlayerScreen() {
+  const player = useAudioPlayer(audioSource);
+
   return (
     <Screen>
       <Text style={styles.title}>Player Screen</Text>
-      <PlayerControls />
+
+      <Button title="Play" onPress={() => player.play()} />
+      <Button title="Pause" onPress={() => player.pause()} />
+      <Button
+        title="Restart"
+        onPress={() => {
+          player.seekTo(0);
+          player.play();
+        }}
+      />
     </Screen>
   );
 }
@@ -16,5 +30,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "700",
+    marginBottom: 24,
   },
 });
