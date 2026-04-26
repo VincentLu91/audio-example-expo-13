@@ -30,8 +30,16 @@ export default function PlayerScreen() {
         Time: {formatTime(status.currentTime)} / {formatTime(status.duration)}
       </Text>
 
-      <Button title="Play" onPress={() => player.play()} />
-      <Button title="Pause" onPress={() => player.pause()} />
+      <Button
+        title={status.playing ? "Pause" : "Play"}
+        onPress={() => {
+          if (status.playing) {
+            player.pause();
+          } else {
+            player.play();
+          }
+        }}
+      />
       <Button
         title="Restart"
         onPress={() => {
