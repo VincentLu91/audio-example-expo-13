@@ -2,6 +2,7 @@ import { useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import Slider from "@react-native-community/slider";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import Screen from "../components/Screen";
 
@@ -19,10 +20,18 @@ function formatTime(seconds) {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-function PlayerButton({ label, onPress }) {
+function PlayerButton({ label, iconName, onPress }) {
   return (
     <Pressable style={styles.playerButton} onPress={onPress}>
-      <Text style={styles.playerButtonText}>{label}</Text>
+      {iconName ? (
+        <Ionicons
+          name={iconName}
+          size={iconName.includes("circle") ? 30 : 22}
+          color="white"
+        />
+      ) : (
+        <Text style={styles.playerButtonText}>{label}</Text>
+      )}
     </Pressable>
   );
 }
@@ -39,7 +48,7 @@ export default function PlayerScreen() {
   return (
     <Screen>
       <View style={styles.playerCard}>
-        <Text style={styles.title}>Player Screen</Text>
+        <Text style={styles.title}>Audio Player</Text>
 
         <Text style={styles.statusText}>
           Status: {status.playing ? "Playing" : "Paused"}
@@ -78,7 +87,7 @@ export default function PlayerScreen() {
 
         <View style={styles.controlsRow}>
           <PlayerButton
-            label={status.playing ? "Pause" : "Play"}
+            iconName={status.playing ? "pause-circle" : "play-circle"}
             onPress={() => {
               if (status.playing) {
                 player.pause();
@@ -89,7 +98,7 @@ export default function PlayerScreen() {
           />
 
           <PlayerButton
-            label="Restart"
+            iconName="refresh"
             onPress={async () => {
               await player.seekTo(0);
               player.play();
@@ -99,14 +108,14 @@ export default function PlayerScreen() {
 
         <View style={styles.controlsRow}>
           <PlayerButton
-            label="-10s"
+            iconName="play-back"
             onPress={async () => {
               await player.seekTo(Math.max(currentTime - 10, 0));
             }}
           />
 
           <PlayerButton
-            label="+10s"
+            iconName="play-forward"
             onPress={async () => {
               await player.seekTo(Math.min(currentTime + 10, duration));
             }}
