@@ -39,6 +39,20 @@ function getCallSessionStatusLabel(status) {
   return "Unknown";
 }
 
+function formatCallStartedAt(startedAt) {
+  if (!startedAt) {
+    return "Unknown";
+  }
+
+  const date = new Date(startedAt);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown";
+  }
+
+  return date.toLocaleString();
+}
+
 export default function PhoneRecordingScreen({ navigation }) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [filename, setFilename] = useState("");
@@ -184,7 +198,7 @@ export default function PhoneRecordingScreen({ navigation }) {
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Started</Text>
               <Text style={styles.detailValue}>
-                {new Date(callSession.startedAt).toLocaleString()}
+                {formatCallStartedAt(callSession.startedAt)}
               </Text>
             </View>
           </View>
