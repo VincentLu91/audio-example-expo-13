@@ -14,9 +14,29 @@ export default function PhoneRecordingScreen({ navigation }) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [filename, setFilename] = useState("");
 
-  const callStatus = "Not started";
+  const [callStatus, setCallStatus] = useState("Not started");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [transcript, setTranscript] = useState("");
+
   const callsAvailable = null;
-  const transcript = "";
+
+  function handleStartPhoneRecording() {
+    const cleanedPhoneNumber = phoneNumber.trim();
+
+    if (!cleanedPhoneNumber) {
+      setErrorMessage("Enter a phone number first.");
+      setCallStatus("Missing phone number");
+      return;
+    }
+
+    setErrorMessage("");
+    setCallStatus("Ready to start");
+
+    console.log("Phone recording start requested:", {
+      phoneNumber: cleanedPhoneNumber,
+      filename: filename.trim(),
+    });
+  }
 
   return (
     <Screen>
@@ -24,8 +44,8 @@ export default function PhoneRecordingScreen({ navigation }) {
         <Text style={styles.title}>Phone Recording</Text>
 
         <Text style={styles.subtitle}>
-          Start a phone-call-style recording, capture the transcript, then save
-          it to your recordings list.
+          Dial a phone number through your backend, capture the transcript, then
+          save it to your recordings list.
         </Text>
 
         <View style={styles.card}>
@@ -43,6 +63,9 @@ export default function PhoneRecordingScreen({ navigation }) {
           <Text style={styles.helperText}>
             Phone validation and dialing logic will be connected later.
           </Text>
+          {errorMessage ? (
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          ) : null}
         </View>
 
         <View style={styles.card}>
@@ -99,7 +122,10 @@ export default function PhoneRecordingScreen({ navigation }) {
           </Text>
         </View>
 
-        <Pressable style={styles.primaryButton}>
+        <Pressable
+          style={styles.primaryButton}
+          onPress={handleStartPhoneRecording}
+        >
           <Text style={styles.primaryButtonText}>Start phone recording</Text>
         </Pressable>
 
@@ -240,6 +266,11 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: "#111827",
     fontSize: 16,
+    fontWeight: "600",
+  },
+  errorText: {
+    fontSize: 13,
+    color: "#dc2626",
     fontWeight: "600",
   },
 });
