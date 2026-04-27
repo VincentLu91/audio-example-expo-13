@@ -9,6 +9,8 @@ import HomeScreen from "../screens/HomeScreen";
 import DetailsScreen from "../screens/DetailsScreen";
 import LiveTranscriptionScreen from "../screens/LiveTranscriptionScreen";
 import PlayerScreen from "../screens/PlayerScreen";
+import PhoneRecordingScreen from "../screens/PhoneRecordingScreen";
+
 import { supabase } from "../../lib/supabase";
 
 const Stack = createNativeStackNavigator();
@@ -54,6 +56,11 @@ export default function RootNavigator() {
               component={LiveTranscriptionScreen}
             />
             <Stack.Screen name={ROUTES.PLAYER} component={PlayerScreen} />
+            <Stack.Screen
+              name={ROUTES.PHONE_RECORDING}
+              component={PhoneRecordingScreen}
+              options={{ title: "Phone Recording" }}
+            />
           </>
         ) : (
           <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />

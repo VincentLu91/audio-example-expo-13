@@ -222,6 +222,13 @@ export default function HomeScreen({ navigation }) {
         </Pressable>
       </View>
 
+      <Pressable
+        style={styles.phoneButton}
+        onPress={() => navigation.navigate(ROUTES.PHONE_RECORDING)}
+      >
+        <Text style={styles.phoneButtonText}>New phone recording</Text>
+      </Pressable>
+
       {loading ? (
         <ActivityIndicator />
       ) : errorMessage ? (
@@ -327,5 +334,19 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: "red",
+  },
+  phoneButton: {
+    backgroundColor: "#111827",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+
+  phoneButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
