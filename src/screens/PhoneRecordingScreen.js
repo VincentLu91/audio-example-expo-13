@@ -17,10 +17,15 @@ export default function PhoneRecordingScreen({ navigation }) {
   const [callStatus, setCallStatus] = useState("Not started");
   const [errorMessage, setErrorMessage] = useState("");
   const [transcript, setTranscript] = useState("");
+  const [isStartingCall, setIsStartingCall] = useState(false);
 
   const callsAvailable = null;
 
-  function handleStartPhoneRecording() {
+  async function handleStartPhoneRecording() {
+    if (isStartingCall) {
+      return;
+    }
+
     const cleanedPhoneNumber = phoneNumber.trim();
 
     if (!cleanedPhoneNumber) {
@@ -30,12 +35,27 @@ export default function PhoneRecordingScreen({ navigation }) {
     }
 
     setErrorMessage("");
-    setCallStatus("Ready to start");
+    setIsStartingCall(true);
+    setCallStatus("Starting call...");
 
-    console.log("Phone recording start requested:", {
-      phoneNumber: cleanedPhoneNumber,
-      filename: filename.trim(),
-    });
+    try {
+      console.log("Phone recording start requested:", {
+        phoneNumber: cleanedPhoneNumber,
+        filename: filename.trim(),
+      });
+
+      // Temporary fake wait so you can visually confirm the loading state.
+      // We will remove this when we connect the real startPhoneCall() service.
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      setCallStatus("Ready to start");
+    } catch (error) {
+      console.error("Failed to start phone recording:", error);
+      setErrorMessage("Could not start the phone recording.");
+      setCallStatus("Failed to start");
+    } finally {
+      setIsStartingCall(false);
+    }
   }
 
   return (
@@ -123,10 +143,16 @@ export default function PhoneRecordingScreen({ navigation }) {
         </View>
 
         <Pressable
-          style={styles.primaryButton}
+          style={[
+            styles.primaryButton,
+            isStartingCall && styles.primaryButtonDisabled,
+          ]}
           onPress={handleStartPhoneRecording}
+          disabled={isStartingCall}
         >
-          <Text style={styles.primaryButtonText}>Start phone recording</Text>
+          <Text style={styles.primaryButtonText}>
+            {isStartingCall ? "Starting..." : "Start phone recording"}
+          </Text>
         </Pressable>
 
         <Pressable
@@ -246,6 +272,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     alignItems: "center",
+  },
+
+  primaryButtonDisabled: {
+    opacity: 0.6,
   },
 
   primaryButtonText: {
