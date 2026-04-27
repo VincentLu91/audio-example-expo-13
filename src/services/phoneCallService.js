@@ -18,7 +18,11 @@ export async function startPhoneCall({ phoneNumber, filename }) {
 
   return {
     success: true,
-    callId: "placeholder-call-id",
-    status: "ready",
+    callSessionId: "placeholder-call-session-id",
+    providerCallId: "placeholder-twilio-call-id",
+    status: "call_start_requested",
+    phoneNumber: cleanedPhoneNumber,
+    filename: cleanedFilename || null,
+    startedAt: new Date().toISOString(),
   };
 }
