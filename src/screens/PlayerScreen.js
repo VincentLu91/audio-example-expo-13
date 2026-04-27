@@ -5,9 +5,7 @@ import Slider from "@react-native-community/slider";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import Screen from "../components/Screen";
-
-const audioSource =
-  "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+import { supabase } from "../../lib/supabase";
 
 function formatTime(seconds) {
   if (!seconds || Number.isNaN(seconds)) {
@@ -36,7 +34,14 @@ function PlayerButton({ label, iconName, onPress }) {
   );
 }
 
-export default function PlayerScreen() {
+export default function PlayerScreen({ route }) {
+  const recording = route?.params?.recording;
+
+  const audioSource = recording?.original_file_name
+    ? supabase.storage
+        .from("recreate-ai-storage-bucket")
+        .getPublicUrl(recording.original_file_name).data.publicUrl
+    : "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
   const player = useAudioPlayer(audioSource);
   const status = useAudioPlayerStatus(player);
   const [isSeeking, setIsSeeking] = useState(false);
@@ -49,6 +54,13 @@ export default function PlayerScreen() {
     <Screen>
       <View style={styles.playerCard}>
         <Text style={styles.title}>Audio Player</Text>
+        {recording && (
+          <>
+            <Text>Selected recording:</Text>
+            <Text>{recording.file_name || "Untitled recording"}</Text>
+            <Text>Type: {recording.recordingType}</Text>
+          </>
+        )}
 
         <Text style={styles.statusText}>
           Status: {status.playing ? "Playing" : "Paused"}

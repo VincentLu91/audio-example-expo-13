@@ -9,10 +9,9 @@ import {
 } from "react-native";
 
 import Screen from "../components/Screen";
-import { ROUTES } from "../constants/routes";
 import { supabase } from "../../lib/supabase";
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,8 +35,6 @@ export default function LoginScreen({ navigation }) {
       Alert.alert("Login failed", error.message);
       return;
     }
-
-    navigation.replace(ROUTES.HOME);
   }
 
   return (
