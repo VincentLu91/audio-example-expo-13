@@ -1,28 +1,76 @@
-export async function startPhoneCall({ phoneNumber, filename }) {
-  const cleanedPhoneNumber = phoneNumber?.trim();
-  const cleanedFilename = filename?.trim();
+const NEXT_API_BASE_URL = "https://next-firebase-login-email.vercel.app";
 
-  if (!cleanedPhoneNumber) {
+async function readJsonResponse(response) {
+  const text = await response.text();
+
+  let data = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    console.log("Phone API error response:", {
+      status: response.status,
+      data,
+      text,
+    });
+
+    const serverError = data?.error || data?.message || data || text;
+
+    const message =
+      typeof serverError === "string"
+        ? serverError
+        : JSON.stringify(serverError);
+
+    throw new Error(message || "Request failed.");
+  }
+
+  return data;
+}
+
+export async function startPhoneCall({ phoneNumber, customerId }) {
+  if (!phoneNumber) {
     throw new Error("Phone number is required.");
   }
 
-  console.log("Placeholder startPhoneCall called:", {
-    phoneNumber: cleanedPhoneNumber,
-    filename: cleanedFilename,
-  });
+  if (!customerId) {
+    throw new Error("Customer ID is required.");
+  }
 
-  // Temporary fake delay.
-  // Later this function will call your Next.js API,
-  // and the Next.js API will trigger Twilio.
-  await new Promise((resolve) => setTimeout(resolve, 800));
+  const url =
+    `${NEXT_API_BASE_URL}/api/dialTwilio` +
+    `?to=${encodeURIComponent(phoneNumber)}` +
+    `&customer_id=${encodeURIComponent(customerId)}`;
+
+  const response = await fetch(url);
+
+  const data = await readJsonResponse(response);
 
   return {
     success: true,
-    callSessionId: "placeholder-call-session-id",
-    providerCallId: "placeholder-twilio-call-id",
+    callSessionId: data.callSID,
+    providerCallId: data.callSID,
     status: "call_start_requested",
-    phoneNumber: cleanedPhoneNumber,
-    filename: cleanedFilename || null,
+    phoneNumber,
+    customerId,
     startedAt: new Date().toISOString(),
+    raw: data,
   };
+}
+
+export async function getCallCredits({ customerId }) {
+  if (!customerId) {
+    throw new Error("Customer ID is required.");
+  }
+
+  const url =
+    `${NEXT_API_BASE_URL}/api/calls-token` +
+    `?user=${encodeURIComponent(customerId)}`;
+
+  const response = await fetch(url);
+
+  return readJsonResponse(response);
 }

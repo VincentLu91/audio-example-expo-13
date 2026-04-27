@@ -6,10 +6,11 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Screen from "../components/Screen";
 import { startPhoneCall } from "../services/phoneCallService";
+import { PhoneTranscriptionService } from "../services/phoneTranscriptionService";
 
 function getCallSessionStatusLabel(status) {
   if (status === "call_start_requested") {
@@ -62,6 +63,17 @@ export default function PhoneRecordingScreen({ navigation }) {
   const [transcript, setTranscript] = useState("");
   const [isStartingCall, setIsStartingCall] = useState(false);
   const [callSession, setCallSession] = useState(null);
+  const [phoneTranscription, setPhoneTranscription] = useState(
+    PhoneTranscriptionService.getState(),
+  );
+
+  useEffect(() => {
+    const unsubscribe = PhoneTranscriptionService.subscribe(
+      setPhoneTranscription,
+    );
+
+    return unsubscribe;
+  }, []);
 
   const callsAvailable = null;
 
@@ -84,10 +96,15 @@ export default function PhoneRecordingScreen({ navigation }) {
     setCallStatus("Starting call...");
 
     try {
+      const customerId = process.env.EXPO_PUBLIC_DEV_CUSTOMER_ID;
+
       const result = await startPhoneCall({
         phoneNumber: cleanedPhoneNumber,
-        filename,
+        customerId,
       });
+
+      PhoneTranscriptionService.initialize();
+      PhoneTranscriptionService.startCall();
 
       console.log("Phone call service result:", result);
 
@@ -106,6 +123,9 @@ export default function PhoneRecordingScreen({ navigation }) {
     <Screen>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Phone Recording</Text>
+        <Text style={styles.statusText}>
+          Phone transcript status: {phoneTranscription.callStatus || "Idle"}
+        </Text>
 
         <Text style={styles.subtitle}>
           Dial a phone number through your backend, capture the transcript, then
@@ -189,13 +209,6 @@ export default function PhoneRecordingScreen({ navigation }) {
             </View>
 
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Filename</Text>
-              <Text style={styles.detailValue}>
-                {callSession.filename || "No filename"}
-              </Text>
-            </View>
-
-            <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Started</Text>
               <Text style={styles.detailValue}>
                 {formatCallStartedAt(callSession.startedAt)}
@@ -209,8 +222,8 @@ export default function PhoneRecordingScreen({ navigation }) {
 
           <View style={styles.transcriptBox}>
             <Text style={styles.transcriptText}>
-              {transcript ||
-                "Transcript will appear here while the call is active."}
+              {phoneTranscription.transcript ||
+                "Live transcript will appear here after the call connects."}
             </Text>
           </View>
         </View>
