@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { ScrollView, View, Text, Pressable, StyleSheet } from "react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import Slider from "@react-native-community/slider";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -49,6 +49,7 @@ export default function PlayerScreen({ route }) {
 
   const duration = status.duration || 0;
   const currentTime = isSeeking ? seekValue : status.currentTime || 0;
+  const transcriptText = recording?.full_transcript?.trim() || "";
 
   return (
     <Screen>
@@ -134,6 +135,19 @@ export default function PlayerScreen({ route }) {
           />
         </View>
       </View>
+      <View style={styles.transcriptCard}>
+        <Text style={styles.transcriptTitle}>Transcript</Text>
+
+        {transcriptText ? (
+          <ScrollView style={styles.transcriptScroll}>
+            <Text style={styles.transcriptText}>{transcriptText}</Text>
+          </ScrollView>
+        ) : (
+          <Text style={styles.emptyTranscriptText}>
+            No transcript found for this recording.
+          </Text>
+        )}
+      </View>
     </Screen>
   );
 }
@@ -198,5 +212,32 @@ const styles = StyleSheet.create({
     color: "#f9fafb",
     fontSize: 16,
     fontWeight: "500",
+  },
+  transcriptCard: {
+    width: "100%",
+    marginTop: 20,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "#111827",
+    borderWidth: 1,
+    borderColor: "#374151",
+  },
+  transcriptTitle: {
+    color: "white",
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 12,
+  },
+  transcriptScroll: {
+    maxHeight: 260,
+  },
+  transcriptText: {
+    color: "#e5e7eb",
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  emptyTranscriptText: {
+    color: "#9ca3af",
+    fontSize: 15,
   },
 });
