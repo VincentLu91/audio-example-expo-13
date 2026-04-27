@@ -19,6 +19,7 @@ export default function PhoneRecordingScreen({ navigation }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [transcript, setTranscript] = useState("");
   const [isStartingCall, setIsStartingCall] = useState(false);
+  const [callSession, setCallSession] = useState(null);
 
   const callsAvailable = null;
 
@@ -36,6 +37,7 @@ export default function PhoneRecordingScreen({ navigation }) {
     }
 
     setErrorMessage("");
+    setCallSession(null);
     setIsStartingCall(true);
     setCallStatus("Starting call...");
 
@@ -47,6 +49,7 @@ export default function PhoneRecordingScreen({ navigation }) {
 
       console.log("Phone call service result:", result);
 
+      setCallSession(result);
       setCallStatus("Call start requested");
     } catch (error) {
       console.error("Failed to start phone recording:", error);
@@ -113,6 +116,44 @@ export default function PhoneRecordingScreen({ navigation }) {
             transcribing, completed, or failed.
           </Text>
         </View>
+        {callSession ? (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Call session</Text>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Session ID</Text>
+              <Text style={styles.detailValue}>
+                {callSession.callSessionId}
+              </Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Provider ID</Text>
+              <Text style={styles.detailValue}>
+                {callSession.providerCallId}
+              </Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Phone number</Text>
+              <Text style={styles.detailValue}>{callSession.phoneNumber}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Filename</Text>
+              <Text style={styles.detailValue}>
+                {callSession.filename || "No filename"}
+              </Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Started</Text>
+              <Text style={styles.detailValue}>
+                {new Date(callSession.startedAt).toLocaleString()}
+              </Text>
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Live transcript</Text>
