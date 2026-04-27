@@ -9,6 +9,7 @@ import {
 import { useState } from "react";
 
 import Screen from "../components/Screen";
+import { startPhoneCall } from "../services/phoneCallService";
 
 export default function PhoneRecordingScreen({ navigation }) {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -39,16 +40,14 @@ export default function PhoneRecordingScreen({ navigation }) {
     setCallStatus("Starting call...");
 
     try {
-      console.log("Phone recording start requested:", {
+      const result = await startPhoneCall({
         phoneNumber: cleanedPhoneNumber,
-        filename: filename.trim(),
+        filename,
       });
 
-      // Temporary fake wait so you can visually confirm the loading state.
-      // We will remove this when we connect the real startPhoneCall() service.
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      console.log("Phone call service result:", result);
 
-      setCallStatus("Ready to start");
+      setCallStatus("Call start requested");
     } catch (error) {
       console.error("Failed to start phone recording:", error);
       setErrorMessage("Could not start the phone recording.");
