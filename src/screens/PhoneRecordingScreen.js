@@ -11,6 +11,34 @@ import { useState } from "react";
 import Screen from "../components/Screen";
 import { startPhoneCall } from "../services/phoneCallService";
 
+function getCallSessionStatusLabel(status) {
+  if (status === "call_start_requested") {
+    return "Call start requested";
+  }
+
+  if (status === "dialing") {
+    return "Dialing";
+  }
+
+  if (status === "recording") {
+    return "Recording";
+  }
+
+  if (status === "transcribing") {
+    return "Transcribing";
+  }
+
+  if (status === "completed") {
+    return "Completed";
+  }
+
+  if (status === "failed") {
+    return "Failed";
+  }
+
+  return "Unknown";
+}
+
 export default function PhoneRecordingScreen({ navigation }) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [filename, setFilename] = useState("");
@@ -119,6 +147,13 @@ export default function PhoneRecordingScreen({ navigation }) {
         {callSession ? (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Call session</Text>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Status</Text>
+              <Text style={styles.detailValue}>
+                {getCallSessionStatusLabel(callSession.status)}
+              </Text>
+            </View>
 
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Session ID</Text>
