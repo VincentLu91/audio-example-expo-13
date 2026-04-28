@@ -219,6 +219,29 @@ export default function PhoneRecordingScreen({ navigation }) {
   const hasActiveOrCompletedCall =
     isStartingCall || callSession || isPhoneRecordingComplete;
 
+  function formatDurationFromMillis(durationMillis) {
+    const totalSeconds = Math.floor(durationMillis / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    }
+
+    return `${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
+  }
+
+  function addDurationToTimestamp(timestamp, durationInSeconds) {
+    const date = new Date(timestamp);
+    const duration = Number(durationInSeconds) || 0;
+    return new Date(date.getTime() + duration * 1000).toUTCString();
+  }
+
   function resetPhoneRecordingScreen() {
     PhoneTranscriptionService.reset();
 
@@ -262,10 +285,14 @@ export default function PhoneRecordingScreen({ navigation }) {
     setErrorMessage("");
     setSuccessMessage("");
 
-    const seconds = Number(completedRecording.recordingDuration || 0);
-    const durationText = `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60)
-      .toString()
-      .padStart(2, "0")}`;
+    const recordingDuration =
+      parseFloat(completedRecording.recordingDuration) || 0;
+    const durationMillis = Math.floor(recordingDuration * 1000);
+    const durationText = formatDurationFromMillis(durationMillis);
+    const recordingEndTime = addDurationToTimestamp(
+      completedRecording.recordingStartTime,
+      recordingDuration,
+    );
 
     const { data: sessionData, error: sessionError } =
       await supabase.auth.getSession();
@@ -284,7 +311,14 @@ export default function PhoneRecordingScreen({ navigation }) {
         file_name: cleanedFilename,
         duration: durationText,
         full_transcript: phoneTranscription.transcript,
-        original_file_name: null,
+
+        telnyx_call_control_id: completedRecording.callSid,
+        recording_id: completedRecording.recordingSid,
+        original_file_name: completedRecording.recordingUrl,
+        durationMillis,
+        start_time: completedRecording.recordingStartTime,
+        end_time: recordingEndTime,
+        react_native_event: completedRecording.recordingStatus,
       },
     ]);
 

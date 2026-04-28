@@ -167,7 +167,7 @@ export default function HomeScreen({ navigation }) {
 
   function renderRecording({ item }) {
     const title =
-      item.original_file_name || item.file_name || "Untitled recording";
+      item.file_name || item.original_file_name || "Untitled recording";
 
     const transcriptReady = hasTranscript(item);
 

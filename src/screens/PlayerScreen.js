@@ -42,7 +42,8 @@ export default function PlayerScreen({ route }) {
         .from("recreate-ai-storage-bucket")
         .getPublicUrl(recording.original_file_name).data.publicUrl
     : "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
-  const player = useAudioPlayer(audioSource);
+  const source = recording?.original_file_name || audioSource;
+  const player = useAudioPlayer(source);
   const status = useAudioPlayerStatus(player);
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekValue, setSeekValue] = useState(0);
