@@ -6,7 +6,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import Screen from "../components/Screen";
 import { startPhoneCall } from "../services/phoneCallService";
@@ -72,11 +72,13 @@ export default function PhoneRecordingScreen({ navigation }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [transcript, setTranscript] = useState("");
   const [isStartingCall, setIsStartingCall] = useState(false);
+  const isStartingCallRef = useRef(false);
   const [callSession, setCallSession] = useState(null);
   const [phoneTranscription, setPhoneTranscription] = useState(
     PhoneTranscriptionService.getState(),
   );
   const [successMessage, setSuccessMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const unsubscribe = PhoneTranscriptionService.subscribe(
@@ -91,16 +93,26 @@ export default function PhoneRecordingScreen({ navigation }) {
   const isPhoneRecordingComplete =
     phoneTranscription.callStatus === "completed" && completedRecording;
 
-  async function handleSavePhoneRecordingDebug() {
+  async function handleSavePhoneRecording() {
+    if (isSaving) {
+      return;
+    }
+
+    setIsSaving(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
     const cleanedFilename = filename.trim();
 
     if (!isPhoneRecordingComplete) {
       setErrorMessage("Complete the call before saving.");
+      setIsSaving(false);
       return;
     }
 
     if (!cleanedFilename) {
       setErrorMessage("Enter a recording name before saving.");
+      setIsSaving(false);
       return;
     }
 
@@ -119,6 +131,7 @@ export default function PhoneRecordingScreen({ navigation }) {
 
     if (sessionError || !user) {
       setErrorMessage("You must be logged in before saving.");
+      setIsSaving(false);
       return;
     }
 
@@ -135,14 +148,16 @@ export default function PhoneRecordingScreen({ navigation }) {
     if (error) {
       console.error("Failed to save phone recording:", error);
       setErrorMessage("Could not save phone recording.");
+      setIsSaving(false);
       return;
     }
 
     setSuccessMessage("Phone recording saved.");
+    navigation.goBack();
   }
 
   async function handleStartPhoneRecording() {
-    if (isStartingCall) {
+    if (isStartingCallRef.current) {
       return;
     }
 
@@ -156,6 +171,7 @@ export default function PhoneRecordingScreen({ navigation }) {
 
     setErrorMessage("");
     setCallSession(null);
+    isStartingCallRef.current = true;
     setIsStartingCall(true);
     setCallStatus("Starting call...");
 
@@ -167,13 +183,19 @@ export default function PhoneRecordingScreen({ navigation }) {
         customerId,
       });
 
-      PhoneTranscriptionService.initialize();
-      PhoneTranscriptionService.startCall();
-
       console.log("Phone call service result:", result);
-
       setCallSession(result);
       setCallStatus("Call start requested");
+
+      try {
+        PhoneTranscriptionService.initialize();
+        PhoneTranscriptionService.startCall();
+      } catch (transcriptionError) {
+        console.error(
+          "Failed to start phone transcription websocket:",
+          transcriptionError,
+        );
+      }
     } catch (error) {
       console.error("Failed to start phone recording:", error);
       setErrorMessage("Could not start the phone recording.");
@@ -335,13 +357,14 @@ export default function PhoneRecordingScreen({ navigation }) {
               <Pressable
                 style={[
                   styles.primaryButton,
-                  !isPhoneRecordingComplete && styles.primaryButtonDisabled,
+                  (!isPhoneRecordingComplete || isSaving) &&
+                    styles.primaryButtonDisabled,
                 ]}
-                onPress={handleSavePhoneRecordingDebug}
-                disabled={!isPhoneRecordingComplete}
+                onPress={handleSavePhoneRecording}
+                disabled={!isPhoneRecordingComplete || isSaving}
               >
                 <Text style={styles.primaryButtonText}>
-                  Save phone recording
+                  {isSaving ? "Saving..." : "Save phone recording"}
                 </Text>
               </Pressable>
             </>
@@ -356,13 +379,17 @@ export default function PhoneRecordingScreen({ navigation }) {
           <Pressable
             style={[
               styles.primaryButton,
-              isStartingCall && styles.primaryButtonDisabled,
+              (isStartingCall || callSession) && styles.primaryButtonDisabled,
             ]}
             onPress={handleStartPhoneRecording}
-            disabled={isStartingCall}
+            disabled={isStartingCall || Boolean(callSession)}
           >
             <Text style={styles.primaryButtonText}>
-              {isStartingCall ? "Starting..." : "Start phone recording"}
+              {isStartingCall
+                ? "Starting..."
+                : callSession
+                ? "Call started"
+                : "Start phone recording"}
             </Text>
           </Pressable>
         ) : null}

@@ -7,6 +7,8 @@ import {
   Text,
   View,
 } from "react-native";
+import { useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 
 import Screen from "../components/Screen";
 import { ROUTES } from "../constants/routes";
@@ -100,9 +102,11 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  useEffect(() => {
-    loadRecordings();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadRecordings();
+    }, []),
+  );
 
   async function loadRecordings() {
     setLoading(true);
