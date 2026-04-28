@@ -1,4 +1,5 @@
 import {
+  AppState,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -88,10 +89,60 @@ export default function PhoneRecordingScreen({ navigation }) {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      const currentTranscriptionState = PhoneTranscriptionService.getState();
+      const socketOpen = PhoneTranscriptionService.isSocketOpen();
+
+      console.log("Phone recording app state changed:", nextAppState, {
+        socketOpen,
+        transcriptionStatus: currentTranscriptionState.callStatus,
+      });
+
+      const shouldReconnect =
+        nextAppState === "active" &&
+        callSession &&
+        !socketOpen &&
+        currentTranscriptionState.callStatus !== "completed" &&
+        currentTranscriptionState.callStatus !== "connecting" &&
+        currentTranscriptionState.callStatus !== "reconnecting";
+
+      if (shouldReconnect) {
+        console.log(
+          "Reconnecting phone transcription websocket after foreground",
+        );
+        PhoneTranscriptionService.startCall({ preserveExistingSession: true });
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [callSession]);
+
   const callsAvailable = null;
   const completedRecording = phoneTranscription.callRecordingInfo;
   const isPhoneRecordingComplete =
     phoneTranscription.callStatus === "completed" && completedRecording;
+
+  const hasActiveOrCompletedCall =
+    isStartingCall || callSession || isPhoneRecordingComplete;
+
+  function resetPhoneRecordingScreen() {
+    PhoneTranscriptionService.reset();
+
+    setPhoneNumber("");
+    setFilename("");
+    setCallStatus("Not started");
+    setErrorMessage("");
+    setTranscript("");
+    setIsStartingCall(false);
+    isStartingCallRef.current = false;
+    setCallSession(null);
+    setPhoneTranscription(PhoneTranscriptionService.getState());
+    setSuccessMessage("");
+    setIsSaving(false);
+  }
 
   async function handleSavePhoneRecording() {
     if (isSaving) {
@@ -152,7 +203,7 @@ export default function PhoneRecordingScreen({ navigation }) {
       return;
     }
 
-    setSuccessMessage("Phone recording saved.");
+    resetPhoneRecordingScreen();
     navigation.goBack();
   }
 
@@ -176,17 +227,6 @@ export default function PhoneRecordingScreen({ navigation }) {
     setCallStatus("Starting call...");
 
     try {
-      const customerId = process.env.EXPO_PUBLIC_DEV_CUSTOMER_ID;
-
-      const result = await startPhoneCall({
-        phoneNumber: cleanedPhoneNumber,
-        customerId,
-      });
-
-      console.log("Phone call service result:", result);
-      setCallSession(result);
-      setCallStatus("Call start requested");
-
       try {
         PhoneTranscriptionService.initialize();
         PhoneTranscriptionService.startCall();
@@ -196,7 +236,19 @@ export default function PhoneRecordingScreen({ navigation }) {
           transcriptionError,
         );
       }
+
+      const customerId = process.env.EXPO_PUBLIC_DEV_CUSTOMER_ID;
+      const result = await startPhoneCall({
+        phoneNumber: cleanedPhoneNumber,
+        customerId,
+      });
+
+      console.log("Phone call service result:", result);
+      setCallSession(result);
+      setCallStatus("Call start requested");
     } catch (error) {
+      PhoneTranscriptionService.reset();
+
       console.error("Failed to start phone recording:", error);
       setErrorMessage("Could not start the phone recording.");
       setCallStatus("Failed to start");
@@ -379,14 +431,19 @@ export default function PhoneRecordingScreen({ navigation }) {
           <Pressable
             style={[
               styles.primaryButton,
-              (isStartingCall || callSession) && styles.primaryButtonDisabled,
+              (isStartingCall || callSession || isPhoneRecordingComplete) &&
+                styles.primaryButtonDisabled,
             ]}
             onPress={handleStartPhoneRecording}
-            disabled={isStartingCall || Boolean(callSession)}
+            disabled={
+              isStartingCall || Boolean(callSession) || isPhoneRecordingComplete
+            }
           >
             <Text style={styles.primaryButtonText}>
               {isStartingCall
                 ? "Starting..."
+                : isPhoneRecordingComplete
+                ? "Recording complete"
                 : callSession
                 ? "Call started"
                 : "Start phone recording"}

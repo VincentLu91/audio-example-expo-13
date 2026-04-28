@@ -77,17 +77,18 @@ export const PhoneTranscriptionService = {
     notify();
   },
 
-  startCall() {
+  startCall({ preserveExistingSession = false } = {}) {
     clearKeepAlive();
     closeSocket({ sendStop: false });
 
-    currentSessionId = generateSessionId();
+    if (!preserveExistingSession || !currentSessionId) {
+      currentSessionId = generateSessionId();
+      state.transcript = "";
+      state.callRecordingInfo = null;
+    }
 
     state.sessionId = currentSessionId;
-    state.transcript = "";
-    state.callStatus = "connecting";
-    state.callRecordingInfo = null;
-
+    state.callStatus = preserveExistingSession ? "reconnecting" : "connecting";
     notify();
 
     ws = new WebSocket(PHONE_TRANSCRIPTION_WS_URL);
@@ -120,7 +121,13 @@ export const PhoneTranscriptionService = {
         }
 
         if (data.event === "interim-transcription") {
-          state.transcript = data.text || "";
+          const nextTranscript = typeof data.text === "string" ? data.text : "";
+
+          if (!nextTranscript.trim()) {
+            return;
+          }
+
+          state.transcript = nextTranscript;
           notify();
           return;
         }
@@ -143,12 +150,17 @@ export const PhoneTranscriptionService = {
     };
 
     ws.onerror = (error) => {
-      console.error("Phone transcription WebSocket error:", {
+      console.log("Phone transcription WebSocket error:", {
         message: error?.message,
         type: error?.type,
         keys: error ? Object.keys(error) : [],
         raw: error,
+        currentStatus: state.callStatus,
       });
+
+      if (state.callStatus === "completed") {
+        return;
+      }
 
       state.callStatus = "websocket_error";
       notify();
@@ -222,5 +234,9 @@ export const PhoneTranscriptionService = {
 
   getState() {
     return { ...state };
+  },
+
+  isSocketOpen() {
+    return ws?.readyState === WebSocket.OPEN;
   },
 };
