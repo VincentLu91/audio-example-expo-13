@@ -298,6 +298,7 @@ export default function PhoneRecordingScreen({ navigation }) {
       await supabase.auth.getSession();
 
     const user = sessionData?.session?.user;
+    const storageFileName = `${cleanedFilename}_${user.id}_${Date.now()}.mp3`;
 
     if (sessionError || !user) {
       setErrorMessage("You must be logged in before saving.");
@@ -314,7 +315,7 @@ export default function PhoneRecordingScreen({ navigation }) {
 
         telnyx_call_control_id: completedRecording.callSid,
         recording_id: completedRecording.recordingSid,
-        original_file_name: completedRecording.recordingUrl,
+        original_file_name: storageFileName,
         durationMillis,
         start_time: completedRecording.recordingStartTime,
         end_time: recordingEndTime,
