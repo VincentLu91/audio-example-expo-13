@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import Screen from "../components/Screen";
 import { startPhoneCall } from "../services/phoneCallService";
 import { PhoneTranscriptionService } from "../services/phoneTranscriptionService";
+import { supabase } from "../../lib/supabase";
 
 function getCallSessionStatusLabel(status) {
   if (status === "call_start_requested") {
@@ -54,6 +55,15 @@ function formatCallStartedAt(startedAt) {
   return date.toLocaleString();
 }
 
+function SessionRow({ label, value }) {
+  return (
+    <View style={styles.sessionRow}>
+      <Text style={styles.sessionLabel}>{label}</Text>
+      <Text style={styles.sessionValue}>{value}</Text>
+    </View>
+  );
+}
+
 export default function PhoneRecordingScreen({ navigation }) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [filename, setFilename] = useState("");
@@ -66,6 +76,7 @@ export default function PhoneRecordingScreen({ navigation }) {
   const [phoneTranscription, setPhoneTranscription] = useState(
     PhoneTranscriptionService.getState(),
   );
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     const unsubscribe = PhoneTranscriptionService.subscribe(
@@ -76,6 +87,59 @@ export default function PhoneRecordingScreen({ navigation }) {
   }, []);
 
   const callsAvailable = null;
+  const completedRecording = phoneTranscription.callRecordingInfo;
+  const isPhoneRecordingComplete =
+    phoneTranscription.callStatus === "completed" && completedRecording;
+
+  async function handleSavePhoneRecordingDebug() {
+    const cleanedFilename = filename.trim();
+
+    if (!isPhoneRecordingComplete) {
+      setErrorMessage("Complete the call before saving.");
+      return;
+    }
+
+    if (!cleanedFilename) {
+      setErrorMessage("Enter a recording name before saving.");
+      return;
+    }
+
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    const seconds = Number(completedRecording.recordingDuration || 0);
+    const durationText = `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60)
+      .toString()
+      .padStart(2, "0")}`;
+
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
+
+    const user = sessionData?.session?.user;
+
+    if (sessionError || !user) {
+      setErrorMessage("You must be logged in before saving.");
+      return;
+    }
+
+    const { error } = await supabase.from("call_recordings").insert([
+      {
+        customer_id: user.id,
+        file_name: cleanedFilename,
+        duration: durationText,
+        full_transcript: phoneTranscription.transcript,
+        original_file_name: null,
+      },
+    ]);
+
+    if (error) {
+      console.error("Failed to save phone recording:", error);
+      setErrorMessage("Could not save phone recording.");
+      return;
+    }
+
+    setSuccessMessage("Phone recording saved.");
+  }
 
   async function handleStartPhoneRecording() {
     if (isStartingCall) {
@@ -149,6 +213,9 @@ export default function PhoneRecordingScreen({ navigation }) {
           </Text>
           {errorMessage ? (
             <Text style={styles.errorText}>{errorMessage}</Text>
+          ) : null}
+          {successMessage ? (
+            <Text style={styles.successText}>{successMessage}</Text>
           ) : null}
         </View>
 
@@ -242,20 +309,63 @@ export default function PhoneRecordingScreen({ navigation }) {
           <Text style={styles.helperText}>
             This section will be used after the call is complete.
           </Text>
+
+          {isPhoneRecordingComplete ? (
+            <>
+              <SessionRow
+                label="Recording status"
+                value={completedRecording.recordingStatus || "Unknown"}
+              />
+              <SessionRow
+                label="Recording SID"
+                value={completedRecording.recordingSid || "Unknown"}
+              />
+              <SessionRow
+                label="Call SID"
+                value={completedRecording.callSid || "Unknown"}
+              />
+              <SessionRow
+                label="Duration"
+                value={
+                  completedRecording.recordingDuration
+                    ? `${completedRecording.recordingDuration} seconds`
+                    : "Unknown"
+                }
+              />
+              <Pressable
+                style={[
+                  styles.primaryButton,
+                  !isPhoneRecordingComplete && styles.primaryButtonDisabled,
+                ]}
+                onPress={handleSavePhoneRecordingDebug}
+                disabled={!isPhoneRecordingComplete}
+              >
+                <Text style={styles.primaryButtonText}>
+                  Save phone recording
+                </Text>
+              </Pressable>
+            </>
+          ) : (
+            <Text style={styles.helperText}>
+              Complete the call first, then recording details will appear here.
+            </Text>
+          )}
         </View>
 
-        <Pressable
-          style={[
-            styles.primaryButton,
-            isStartingCall && styles.primaryButtonDisabled,
-          ]}
-          onPress={handleStartPhoneRecording}
-          disabled={isStartingCall}
-        >
-          <Text style={styles.primaryButtonText}>
-            {isStartingCall ? "Starting..." : "Start phone recording"}
-          </Text>
-        </Pressable>
+        {!isPhoneRecordingComplete ? (
+          <Pressable
+            style={[
+              styles.primaryButton,
+              isStartingCall && styles.primaryButtonDisabled,
+            ]}
+            onPress={handleStartPhoneRecording}
+            disabled={isStartingCall}
+          >
+            <Text style={styles.primaryButtonText}>
+              {isStartingCall ? "Starting..." : "Start phone recording"}
+            </Text>
+          </Pressable>
+        ) : null}
 
         <Pressable
           style={styles.secondaryButton}
@@ -404,5 +514,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#dc2626",
     fontWeight: "600",
+  },
+  sessionRow: {
+    marginTop: 10,
+  },
+
+  sessionLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+
+  sessionValue: {
+    marginTop: 2,
+    fontSize: 14,
+    color: "#111827",
+  },
+  successText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#047857",
   },
 });
