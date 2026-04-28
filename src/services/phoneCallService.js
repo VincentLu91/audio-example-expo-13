@@ -61,7 +61,7 @@ export async function startPhoneCall({ phoneNumber, customerId }) {
   };
 }
 
-export async function getCallCredits({ customerId }) {
+export async function deductCallCreditAfterCompletedCall({ customerId }) {
   if (!customerId) {
     throw new Error("Customer ID is required.");
   }
@@ -71,6 +71,11 @@ export async function getCallCredits({ customerId }) {
     `?user=${encodeURIComponent(customerId)}`;
 
   const response = await fetch(url);
+  const data = await readJsonResponse(response);
 
-  return readJsonResponse(response);
+  return {
+    success: true,
+    callsAvailable: data?.data?.[0]?.num_calls ?? null,
+    raw: data,
+  };
 }

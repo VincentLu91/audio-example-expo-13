@@ -10,7 +10,10 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import Screen from "../components/Screen";
-import { startPhoneCall } from "../services/phoneCallService";
+import {
+  deductCallCreditAfterCompletedCall,
+  startPhoneCall,
+} from "../services/phoneCallService";
 import { PhoneTranscriptionService } from "../services/phoneTranscriptionService";
 import { supabase } from "../../lib/supabase";
 
@@ -120,7 +123,95 @@ export default function PhoneRecordingScreen({ navigation }) {
     };
   }, [callSession]);
 
-  const callsAvailable = null;
+  useEffect(() => {
+    async function loadCurrentCallCredits() {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        console.error(
+          "Failed to get Supabase user for call credits:",
+          userError,
+        );
+        return;
+      }
+
+      if (!user?.id) {
+        console.log("Skipping call credit load: no authenticated user.");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, num_calls")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        console.error("Failed to load current call credits:", error);
+        return;
+      }
+
+      console.log("Loaded current customer for call credits:", data);
+      setCallsAvailable(data?.num_calls ?? null);
+    }
+
+    loadCurrentCallCredits();
+  }, []);
+
+  useEffect(() => {
+    async function deductCompletedCallCredit() {
+      if (
+        phoneTranscription.callStatus !== "completed" ||
+        !phoneTranscription.callRecordingInfo
+      ) {
+        return;
+      }
+
+      if (callCreditDeductedRef.current) {
+        return;
+      }
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        console.error(
+          "Failed to get Supabase user for call credit deduction:",
+          userError,
+        );
+        return;
+      }
+
+      if (!user?.id) {
+        console.log("Skipping call credit deduction: no authenticated user.");
+        return;
+      }
+
+      callCreditDeductedRef.current = true;
+
+      try {
+        const result = await deductCallCreditAfterCompletedCall({
+          customerId: user.id,
+        });
+
+        console.log("Call credit deduction result:", result);
+        setCallsAvailable(result.callsAvailable);
+      } catch (error) {
+        console.error("Failed to deduct call credit:", error);
+        setErrorMessage("Call completed, but call credit deduction failed.");
+      }
+    }
+
+    deductCompletedCallCredit();
+  }, [phoneTranscription.callStatus, phoneTranscription.callRecordingInfo]);
+
+  const [callsAvailable, setCallsAvailable] = useState(null);
+  const callCreditDeductedRef = useRef(false);
   const completedRecording = phoneTranscription.callRecordingInfo;
   const isPhoneRecordingComplete =
     phoneTranscription.callStatus === "completed" && completedRecording;
@@ -138,6 +229,7 @@ export default function PhoneRecordingScreen({ navigation }) {
     setTranscript("");
     setIsStartingCall(false);
     isStartingCallRef.current = false;
+    callCreditDeductedRef.current = false;
     setCallSession(null);
     setPhoneTranscription(PhoneTranscriptionService.getState());
     setSuccessMessage("");
