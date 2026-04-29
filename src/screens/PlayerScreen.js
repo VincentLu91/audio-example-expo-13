@@ -10,7 +10,11 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 import Screen from "../components/Screen";
 import { supabase } from "../../lib/supabase";
-import { registerStopPlaybackHandler } from "../services/playbackControlService";
+import {
+  registerStopPlaybackHandler,
+  setActivePlaybackRecording,
+  setActivePlaybackIsPlaying,
+} from "../services/playbackControlService";
 import { MicTranscriptionService } from "../services/micTranscriptionService";
 
 const sharedPlaybackPlayer = createAudioPlayer(null);
@@ -64,6 +68,16 @@ export default function PlayerScreen({ route }) {
       loadedPlaybackSource = source;
     }
   }, [source, player]);
+
+  useEffect(() => {
+    if (recording) {
+      setActivePlaybackRecording(recording);
+    }
+  }, [recording]);
+
+  useEffect(() => {
+    setActivePlaybackIsPlaying(status.playing);
+  }, [status.playing]);
 
   useEffect(() => {
     setAudioModeAsync({

@@ -15,7 +15,10 @@ import { useFocusEffect } from "@react-navigation/native";
 import Screen from "../components/Screen";
 import { ROUTES } from "../constants/routes";
 import { supabase } from "../../lib/supabase";
-import { stopActivePlayback } from "../services/playbackControlService";
+import {
+  stopActivePlayback,
+  subscribeToPlaybackState,
+} from "../services/playbackControlService";
 
 function formatDuration(duration) {
   if (duration === null || duration === undefined || duration === "") {
@@ -106,6 +109,14 @@ export default function HomeScreen({ navigation }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [deletingRecordingKey, setDeletingRecordingKey] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [playbackState, setPlaybackState] = useState({
+    activeRecording: null,
+    isPlaying: false,
+  });
+
+  useEffect(() => {
+    return subscribeToPlaybackState(setPlaybackState);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -375,6 +386,41 @@ export default function HomeScreen({ navigation }) {
           contentContainerStyle={styles.list}
         />
       )}
+      {playbackState.activeRecording ? (
+        <View style={styles.miniPlayer}>
+          <View style={styles.miniPlayerTextBlock}>
+            <Text style={styles.miniPlayerLabel}>
+              {playbackState.isPlaying ? "Now playing" : "Paused"}
+            </Text>
+
+            <Text style={styles.miniPlayerTitle} numberOfLines={1}>
+              {playbackState.activeRecording.file_name ||
+                playbackState.activeRecording.original_file_name ||
+                "Untitled recording"}
+            </Text>
+          </View>
+
+          <View style={styles.miniPlayerActions}>
+            <Pressable
+              style={styles.miniPlayerButton}
+              onPress={() =>
+                navigation.push(ROUTES.PLAYER, {
+                  recording: playbackState.activeRecording,
+                })
+              }
+            >
+              <Text style={styles.miniPlayerButtonText}>Open</Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.miniPlayerStopButton}
+              onPress={stopActivePlayback}
+            >
+              <Text style={styles.miniPlayerStopButtonText}>Stop</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
     </Screen>
   );
 }
@@ -511,5 +557,67 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
+  },
+  miniPlayer: {
+    width: "100%",
+    padding: 12,
+    marginBottom: 32,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    backgroundColor: "white",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  miniPlayerTextBlock: {
+    flex: 1,
+  },
+
+  miniPlayerLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6b7280",
+    marginBottom: 2,
+  },
+
+  miniPlayerTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111827",
+  },
+
+  miniPlayerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  miniPlayerButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: "#111827",
+  },
+
+  miniPlayerButtonText: {
+    color: "white",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  miniPlayerStopButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: "#f3f4f6",
+  },
+
+  miniPlayerStopButtonText: {
+    color: "#374151",
+    fontSize: 13,
+    fontWeight: "700",
   },
 });
