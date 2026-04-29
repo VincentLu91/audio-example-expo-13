@@ -10,6 +10,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 import Screen from "../components/Screen";
 import { supabase } from "../../lib/supabase";
+import { registerStopPlaybackHandler } from "../services/playbackControlService";
 
 function formatTime(seconds) {
   if (!seconds || Number.isNaN(seconds)) {
@@ -57,6 +58,13 @@ export default function PlayerScreen({ route }) {
       interruptionMode: "doNotMix",
     });
   }, []);
+
+  useEffect(() => {
+    return registerStopPlaybackHandler(async () => {
+      player.pause();
+      player.setActiveForLockScreen(false);
+    });
+  }, [player]);
 
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekValue, setSeekValue] = useState(0);

@@ -15,6 +15,8 @@ import { decode } from "base64-arraybuffer";
 
 import Screen from "../components/Screen";
 import { supabase } from "../../lib/supabase";
+import { stopActivePlayback } from "../services/playbackControlService";
+import { MicTranscriptionService } from "../services/micTranscriptionService";
 
 const API_KEY = process.env.EXPO_PUBLIC_ASSEMBLYAI_API_KEY;
 const SAMPLE_RATE = 16000;
@@ -28,34 +30,19 @@ export default function MicRecordingScreen({ navigation }) {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingUri, setRecordingUri] = useState(null);
 
-  const wsRef = useRef(null);
-  const audioStreamRef = useRef(null);
-  const isRecordingRef = useRef(false);
-  const durationTimerRef = useRef(null);
-
-  const pendingChunksRef = useRef([]);
-  const pendingBytesRef = useRef(0);
-  const subscriptionRef = useRef(null);
-
   useEffect(() => {
-    return () => {
-      if (subscriptionRef.current) {
-        subscriptionRef.current.remove();
-        subscriptionRef.current = null;
-      }
-      isRecordingRef.current = false;
-
-      if (audioStreamRef.current) {
-        ExpoPlayAudioStream.stopRecording();
-        audioStreamRef.current = null;
-      }
-
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
+    return MicTranscriptionService.subscribe((nextState) => {
+      setRecordingStatus(nextState.recordingStatus);
+      setTranscriptText(nextState.transcriptText);
+      setErrorMessage(nextState.errorMessage);
+      setSaveMessage(nextState.saveMessage);
+      setRecordingName(nextState.recordingName);
+      setRecordingDuration(nextState.recordingDuration);
+      setRecordingUri(nextState.recordingUri);
+    });
   }, []);
+
+  const audioStreamRef = useRef(null);
 
   function appendTranscript(text) {
     if (!text) return;
@@ -168,148 +155,13 @@ export default function MicRecordingScreen({ navigation }) {
     }
   }
 
-  useEffect(() => {
-    return () => {
-      isRecordingRef.current = false;
-
-      if (audioStreamRef.current) {
-        audioStreamRef.current.stop();
-        audioStreamRef.current = null;
-      }
-
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
-  }, []);
-
   async function handleStartRecording() {
-    console.log("Start mic recording pressed");
-
-    if (isRecordingRef.current) {
-      console.log("Mic recording already running");
-      return;
-    }
-
-    isRecordingRef.current = true;
-
-    let ws = wsRef.current;
-
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      ws = await connectSocket();
-    }
-
-    if (!ws) {
-      return;
-    }
-
-    console.log("Socket open, starting mic stream");
-    const permission = await AudioModule.requestRecordingPermissionsAsync();
-
-    console.log("Expo audio permission:", permission);
-
-    if (!permission.granted) {
-      setRecordingStatus("permission denied");
-      setErrorMessage("Microphone permission was not granted.");
-      isRecordingRef.current = false;
-      return;
-    }
-
-    setErrorMessage("");
-    setSaveMessage("");
-    setRecordingDuration(0);
-    setTranscriptText("Listening...");
-    setRecordingStatus("recording");
-    durationTimerRef.current = setInterval(() => {
-      setRecordingDuration((currentDuration) => currentDuration + 1);
-    }, 1000);
-
-    pendingChunksRef.current = [];
-    pendingBytesRef.current = 0;
-
-    try {
-      const { subscription } = await ExpoPlayAudioStream.startRecording({
-        sampleRate: SAMPLE_RATE,
-        channels: 1,
-        encoding: "pcm_16bit",
-        interval: 250,
-        onAudioStream: (event) => {
-          const currentWs = wsRef.current;
-
-          if (!currentWs || currentWs.readyState !== WebSocket.OPEN) {
-            return;
-          }
-
-          const binary = Buffer.from(event.data, "base64");
-
-          pendingChunksRef.current.push(binary);
-          pendingBytesRef.current += binary.length;
-
-          if (pendingBytesRef.current >= 3200) {
-            const merged = Buffer.concat(pendingChunksRef.current);
-            const arrayBuffer = merged.buffer.slice(
-              merged.byteOffset,
-              merged.byteOffset + merged.byteLength,
-            );
-
-            currentWs.send(arrayBuffer);
-
-            pendingChunksRef.current = [];
-            pendingBytesRef.current = 0;
-          }
-        },
-      });
-
-      subscriptionRef.current = subscription;
-      console.log("Mic stream started");
-    } catch (error) {
-      setRecordingStatus("error");
-      setErrorMessage(`Start recording error: ${String(error)}`);
-      console.log("Start recording error:", error);
-      isRecordingRef.current = false;
-    }
+    await stopActivePlayback();
+    await MicTranscriptionService.startRecording();
   }
 
   async function handleStopRecording() {
-    console.log("Stopping mic recording");
-
-    if (durationTimerRef.current) {
-      clearInterval(durationTimerRef.current);
-      durationTimerRef.current = null;
-    }
-
-    isRecordingRef.current = false;
-
-    if (subscriptionRef.current) {
-      subscriptionRef.current.remove();
-      subscriptionRef.current = null;
-    }
-
-    try {
-      const recording = await ExpoPlayAudioStream.stopRecording();
-
-      console.log("Mic stop recording result:", recording);
-
-      if (recording?.fileUri) {
-        setRecordingUri(recording.fileUri);
-        console.log("Mic recording file URI:", recording.fileUri);
-      }
-    } catch (error) {
-      console.log("Stop recording error:", error);
-    }
-
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-
-    pendingChunksRef.current = [];
-    pendingBytesRef.current = 0;
-
-    setRecordingStatus("stopped");
-
-    console.log("Mic recording stopped");
+    await MicTranscriptionService.stopRecording();
   }
 
   function formatDurationFromMillis(durationMillis) {
@@ -455,7 +307,7 @@ export default function MicRecordingScreen({ navigation }) {
             value={recordingName}
             onChangeText={(text) => {
               setRecordingName(text);
-              setSaveMessage("");
+              MicTranscriptionService.setRecordingName(text);
             }}
             placeholder="Example: Team meeting notes"
             autoCapitalize="sentences"
@@ -475,7 +327,7 @@ export default function MicRecordingScreen({ navigation }) {
           </Pressable>
         )}
 
-        {!isRecordingRef.current ? (
+        {!["recording", "connected"].includes(recordingStatus) ? (
           <Pressable
             style={[
               styles.primaryButton,
