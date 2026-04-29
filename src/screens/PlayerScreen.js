@@ -11,9 +11,11 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import Screen from "../components/Screen";
 import { supabase } from "../../lib/supabase";
 import {
-  registerStopPlaybackHandler,
+  getPlaybackState,
+  registerPlaybackHandlers,
   setActivePlaybackRecording,
   setActivePlaybackIsPlaying,
+  setActivePlaybackStatus,
 } from "../services/playbackControlService";
 import { MicTranscriptionService } from "../services/micTranscriptionService";
 
@@ -76,8 +78,12 @@ export default function PlayerScreen({ route }) {
   }, [recording]);
 
   useEffect(() => {
-    setActivePlaybackIsPlaying(status.playing);
-  }, [status.playing]);
+    setActivePlaybackStatus({
+      isPlaying: status.playing,
+      currentTime: status.currentTime || 0,
+      duration: status.duration || 0,
+    });
+  }, [status.playing, status.currentTime, status.duration]);
 
   useEffect(() => {
     setAudioModeAsync({
@@ -88,11 +94,38 @@ export default function PlayerScreen({ route }) {
   }, []);
 
   useEffect(() => {
-    registerStopPlaybackHandler(async () => {
-      player.pause();
-      player.setActiveForLockScreen(false);
+    registerPlaybackHandlers({
+      stop: async () => {
+        player.pause();
+        player.setActiveForLockScreen(false);
+        setActivePlaybackIsPlaying(false);
+      },
+
+      togglePlayPause: async () => {
+        const nextIsPlaying = !getPlaybackState().isPlaying;
+
+        if (nextIsPlaying) {
+          await stopMicRecordingBeforePlayback();
+
+          player.setActiveForLockScreen(true, {
+            title: recording?.file_name || "Recording",
+            artist: "Audio App",
+          });
+
+          player.play();
+        } else {
+          player.pause();
+          player.setActiveForLockScreen(false);
+        }
+
+        setActivePlaybackIsPlaying(nextIsPlaying);
+      },
+
+      seekTo: async (value) => {
+        await player.seekTo(value);
+      },
     });
-  }, [player]);
+  }, [player, recording]);
 
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekValue, setSeekValue] = useState(0);

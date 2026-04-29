@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
+import Slider from "@react-native-community/slider";
 
 import Screen from "../components/Screen";
 import { ROUTES } from "../constants/routes";
@@ -18,6 +19,8 @@ import { supabase } from "../../lib/supabase";
 import {
   stopActivePlayback,
   subscribeToPlaybackState,
+  toggleActivePlayback,
+  seekActivePlayback,
 } from "../services/playbackControlService";
 
 function formatDuration(duration) {
@@ -398,9 +401,29 @@ export default function HomeScreen({ navigation }) {
                 playbackState.activeRecording.original_file_name ||
                 "Untitled recording"}
             </Text>
+            <Slider
+              style={styles.miniPlayerSlider}
+              minimumValue={0}
+              maximumValue={playbackState.duration || 0}
+              value={playbackState.currentTime || 0}
+              disabled={!playbackState.duration}
+              onSlidingComplete={seekActivePlayback}
+              minimumTrackTintColor="#2563eb"
+              maximumTrackTintColor="#d1d5db"
+              thumbTintColor="#2563eb"
+            />
           </View>
 
           <View style={styles.miniPlayerActions}>
+            <Pressable
+              style={styles.miniPlayerButton}
+              onPress={toggleActivePlayback}
+            >
+              <Text style={styles.miniPlayerButtonText}>
+                {playbackState.isPlaying ? "Pause" : "Play"}
+              </Text>
+            </Pressable>
+
             <Pressable
               style={styles.miniPlayerButton}
               onPress={() =>
@@ -619,5 +642,10 @@ const styles = StyleSheet.create({
     color: "#374151",
     fontSize: 13,
     fontWeight: "700",
+  },
+  miniPlayerSlider: {
+    width: "100%",
+    height: 32,
+    marginTop: 4,
   },
 });

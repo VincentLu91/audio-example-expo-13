@@ -1,8 +1,14 @@
-let stopPlaybackHandler = null;
+let playbackHandlers = {
+  stop: null,
+  togglePlayPause: null,
+  seekTo: null,
+};
 
 let playbackState = {
   activeRecording: null,
   isPlaying: false,
+  currentTime: 0,
+  duration: 0,
 };
 
 const playbackStateListeners = new Set();
@@ -37,6 +43,17 @@ export function setActivePlaybackRecording(recording) {
   notifyPlaybackStateListeners();
 }
 
+export function setActivePlaybackStatus(status) {
+  playbackState = {
+    ...playbackState,
+    isPlaying: Boolean(status?.isPlaying),
+    currentTime: status?.currentTime || 0,
+    duration: status?.duration || 0,
+  };
+
+  notifyPlaybackStateListeners();
+}
+
 export function setActivePlaybackIsPlaying(isPlaying) {
   playbackState = {
     ...playbackState,
@@ -50,25 +67,61 @@ export function clearActivePlayback() {
   playbackState = {
     activeRecording: null,
     isPlaying: false,
+    currentTime: 0,
+    duration: 0,
   };
 
   notifyPlaybackStateListeners();
 }
 
-export function registerStopPlaybackHandler(handler) {
-  stopPlaybackHandler = handler;
+export function registerPlaybackHandlers(handlers) {
+  playbackHandlers = {
+    stop: handlers?.stop || null,
+    togglePlayPause: handlers?.togglePlayPause || null,
+    seekTo: handlers?.seekTo || null,
+  };
 
   return () => {
-    if (stopPlaybackHandler === handler) {
-      stopPlaybackHandler = null;
+    playbackHandlers = {
+      stop: null,
+      togglePlayPause: null,
+      seekTo: null,
+    };
+  };
+}
+
+export function registerStopPlaybackHandler(handler) {
+  playbackHandlers = {
+    ...playbackHandlers,
+    stop: handler,
+  };
+
+  return () => {
+    if (playbackHandlers.stop === handler) {
+      playbackHandlers = {
+        ...playbackHandlers,
+        stop: null,
+      };
     }
   };
 }
 
 export async function stopActivePlayback() {
-  if (stopPlaybackHandler) {
-    await stopPlaybackHandler();
+  if (playbackHandlers.stop) {
+    await playbackHandlers.stop();
   }
 
   clearActivePlayback();
+}
+
+export async function toggleActivePlayback() {
+  if (playbackHandlers.togglePlayPause) {
+    await playbackHandlers.togglePlayPause();
+  }
+}
+
+export async function seekActivePlayback(value) {
+  if (playbackHandlers.seekTo) {
+    await playbackHandlers.seekTo(value);
+  }
 }
