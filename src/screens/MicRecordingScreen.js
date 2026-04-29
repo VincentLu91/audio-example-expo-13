@@ -10,6 +10,8 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { File } from "expo-file-system";
+import { decode } from "base64-arraybuffer";
 
 import Screen from "../components/Screen";
 import { supabase } from "../../lib/supabase";
@@ -285,7 +287,14 @@ export default function MicRecordingScreen({ navigation }) {
     }
 
     try {
-      await ExpoPlayAudioStream.stopRecording();
+      const recording = await ExpoPlayAudioStream.stopRecording();
+
+      console.log("Mic stop recording result:", recording);
+
+      if (recording?.fileUri) {
+        setRecordingUri(recording.fileUri);
+        console.log("Mic recording file URI:", recording.fileUri);
+      }
     } catch (error) {
       console.log("Stop recording error:", error);
     }
@@ -327,7 +336,12 @@ export default function MicRecordingScreen({ navigation }) {
       recordingDuration * 1000,
     );
 
-    if (!trimmedName || !trimmedTranscript || recordingStatus !== "stopped") {
+    if (
+      !trimmedName ||
+      !trimmedTranscript ||
+      !recordingUri ||
+      recordingStatus !== "stopped"
+    ) {
       return;
     }
 
@@ -336,6 +350,7 @@ export default function MicRecordingScreen({ navigation }) {
       recordingDuration: formattedDuration,
       recordingStatus,
       recordingDuration,
+      recordingUri,
       transcriptText: trimmedTranscript,
     });
 
@@ -353,13 +368,42 @@ export default function MicRecordingScreen({ navigation }) {
       return;
     }
 
+    const storageFileName = `${trimmedName}_${user.id}_${Date.now()}.wav`;
+
+    try {
+      // Use the new File class API from expo-file-system v54
+      const file = new File(recordingUri);
+
+      // Read the audio file as base64 using the new API
+      const base64String = await file.base64();
+
+      // Convert base64 to ArrayBuffer for Supabase upload
+      const arrayBuffer = decode(base64String);
+
+      const { error: uploadError } = await supabase.storage
+        .from("recreate-ai-storage-bucket")
+        .upload(storageFileName, arrayBuffer, {
+          contentType: "audio/wav",
+        });
+
+      if (uploadError) {
+        console.error("Upload failed:", uploadError);
+        setErrorMessage("Failed to upload audio file.");
+        return;
+      }
+    } catch (uploadError) {
+      console.error("Upload error:", uploadError);
+      setErrorMessage(`Failed to upload audio file: ${String(uploadError)}`);
+      return;
+    }
+
     const { error } = await supabase.from("mic_recordings").insert([
       {
         customer_id: user.id,
         file_name: trimmedName,
         duration: formattedDuration,
         full_transcript: trimmedTranscript,
-        original_file_name: trimmedName,
+        original_file_name: storageFileName,
       },
     ]);
 
