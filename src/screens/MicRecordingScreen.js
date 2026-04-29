@@ -2,9 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { ExpoPlayAudioStream } from "@mykin-ai/expo-audio-stream";
 import { AudioModule } from "expo-audio";
 import { Buffer } from "buffer";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 import Screen from "../components/Screen";
+import { supabase } from "../../lib/supabase";
 
 const API_KEY = process.env.EXPO_PUBLIC_ASSEMBLYAI_API_KEY;
 const SAMPLE_RATE = 16000;
@@ -13,10 +21,15 @@ export default function MicRecordingScreen({ navigation }) {
   const [recordingStatus, setRecordingStatus] = useState("idle");
   const [transcriptText, setTranscriptText] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [saveMessage, setSaveMessage] = useState("");
+  const [recordingName, setRecordingName] = useState("");
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [recordingUri, setRecordingUri] = useState(null);
 
   const wsRef = useRef(null);
   const audioStreamRef = useRef(null);
   const isRecordingRef = useRef(false);
+  const durationTimerRef = useRef(null);
 
   const pendingChunksRef = useRef([]);
   const pendingBytesRef = useRef(0);
@@ -197,12 +210,18 @@ export default function MicRecordingScreen({ navigation }) {
     if (!permission.granted) {
       setRecordingStatus("permission denied");
       setErrorMessage("Microphone permission was not granted.");
+      isRecordingRef.current = false;
       return;
     }
 
     setErrorMessage("");
+    setSaveMessage("");
+    setRecordingDuration(0);
     setTranscriptText("Listening...");
     setRecordingStatus("recording");
+    durationTimerRef.current = setInterval(() => {
+      setRecordingDuration((currentDuration) => currentDuration + 1);
+    }, 1000);
 
     pendingChunksRef.current = [];
     pendingBytesRef.current = 0;
@@ -253,6 +272,11 @@ export default function MicRecordingScreen({ navigation }) {
   async function handleStopRecording() {
     console.log("Stopping mic recording");
 
+    if (durationTimerRef.current) {
+      clearInterval(durationTimerRef.current);
+      durationTimerRef.current = null;
+    }
+
     isRecordingRef.current = false;
 
     if (subscriptionRef.current) {
@@ -279,6 +303,80 @@ export default function MicRecordingScreen({ navigation }) {
     console.log("Mic recording stopped");
   }
 
+  function formatDurationFromMillis(durationMillis) {
+    const totalSeconds = Math.floor(durationMillis / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    }
+
+    return `${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
+  }
+
+  async function handleSaveRecording() {
+    const trimmedName = recordingName.trim();
+    const trimmedTranscript = transcriptText.trim();
+    const formattedDuration = formatDurationFromMillis(
+      recordingDuration * 1000,
+    );
+
+    if (!trimmedName || !trimmedTranscript || recordingStatus !== "stopped") {
+      return;
+    }
+
+    console.log("Mic recording save payload:", {
+      recordingName: trimmedName,
+      recordingDuration: formattedDuration,
+      recordingStatus,
+      recordingDuration,
+      transcriptText: trimmedTranscript,
+    });
+
+    setErrorMessage("");
+    setSaveMessage("");
+    //setRecordingDuration(0);
+
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
+
+    const user = sessionData?.session?.user;
+
+    if (sessionError || !user) {
+      setErrorMessage("You must be logged in before saving.");
+      return;
+    }
+
+    const { error } = await supabase.from("mic_recordings").insert([
+      {
+        customer_id: user.id,
+        file_name: trimmedName,
+        duration: formattedDuration,
+        full_transcript: trimmedTranscript,
+        original_file_name: trimmedName,
+      },
+    ]);
+
+    if (error) {
+      console.error("Failed to save mic recording:", error);
+      setErrorMessage("Could not save mic recording.");
+      return;
+    }
+
+    setSaveMessage("Mic recording saved.");
+  }
+
+  const canSaveRecording =
+    recordingStatus === "stopped" &&
+    recordingName.trim().length > 0 &&
+    transcriptText.trim().length > 0;
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.container}>
@@ -304,10 +402,42 @@ export default function MicRecordingScreen({ navigation }) {
           </View>
         </View>
 
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Recording name</Text>
+
+          <TextInput
+            style={styles.input}
+            value={recordingName}
+            onChangeText={(text) => {
+              setRecordingName(text);
+              setSaveMessage("");
+            }}
+            placeholder="Example: Team meeting notes"
+            autoCapitalize="sentences"
+          />
+        </View>
+
+        {transcriptText.trim().length > 0 && (
+          <Pressable
+            style={[
+              styles.primaryButton,
+              !canSaveRecording && styles.disabledButton,
+            ]}
+            onPress={handleSaveRecording}
+            disabled={!canSaveRecording}
+          >
+            <Text style={styles.primaryButtonText}>Save recording</Text>
+          </Pressable>
+        )}
+
         {!isRecordingRef.current ? (
           <Pressable
-            style={styles.primaryButton}
+            style={[
+              styles.primaryButton,
+              recordingStatus === "stopped" && styles.disabledButton,
+            ]}
             onPress={handleStartRecording}
+            disabled={recordingStatus === "stopped"}
           >
             <Text style={styles.primaryButtonText}>Start mic recording</Text>
           </Pressable>
@@ -400,5 +530,18 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontSize: 16,
     fontWeight: "600",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    backgroundColor: "#f9fafb",
+    color: "#111827",
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 });
