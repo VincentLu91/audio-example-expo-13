@@ -2,6 +2,8 @@ import { AudioModule } from "expo-audio";
 import { ExpoPlayAudioStream } from "@mykin-ai/expo-audio-stream";
 import { Buffer } from "buffer";
 
+import { supabase } from "../../lib/supabase";
+
 const API_KEY = process.env.EXPO_PUBLIC_ASSEMBLYAI_API_KEY;
 const SAMPLE_RATE = 16000;
 
@@ -13,6 +15,7 @@ let durationTimer = null;
 let isRecording = false;
 let pendingChunks = [];
 let pendingBytes = 0;
+let micTokenCustomerId = null;
 
 const state = {
   recordingStatus: "idle",
@@ -23,6 +26,7 @@ const state = {
   recordingDuration: 0,
   recordingUri: null,
   isRecording: false,
+  micTokensAvailable: null,
 };
 
 function notify() {
@@ -161,6 +165,34 @@ function clearDurationTimer() {
   }
 }
 
+async function loadMicTokens() {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user?.id) {
+    return null;
+  }
+
+  micTokenCustomerId = user.id;
+
+  const { data, error } = await supabase
+    .from("customers")
+    .select("id, mic_tokens")
+    .eq("id", user.id)
+    .single();
+
+  if (error) {
+    console.error("Failed to load mic tokens:", error);
+    return null;
+  }
+
+  const tokens = data?.mic_tokens ?? 0;
+  updateState({ micTokensAvailable: tokens });
+  return tokens;
+}
+
 export const MicTranscriptionService = {
   subscribe(listener) {
     listeners.add(listener);
@@ -241,6 +273,18 @@ export const MicTranscriptionService = {
       return;
     }
 
+    const currentMicTokens = await loadMicTokens();
+
+    if (currentMicTokens !== null && currentMicTokens <= 0) {
+      isRecording = false;
+      updateState({
+        recordingStatus: "error",
+        errorMessage: "No mic recording seconds available.",
+        isRecording: false,
+      });
+      return;
+    }
+
     pendingChunks = [];
     pendingBytes = 0;
 
@@ -256,10 +300,34 @@ export const MicTranscriptionService = {
 
     clearDurationTimer();
 
-    durationTimer = setInterval(() => {
+    durationTimer = setInterval(async () => {
+      const nextDuration = state.recordingDuration + 1;
+      const currentTokens = state.micTokensAvailable;
+
+      const nextTokens =
+        typeof currentTokens === "number"
+          ? Math.max(0, currentTokens - 1)
+          : currentTokens;
+
       updateState({
-        recordingDuration: state.recordingDuration + 1,
+        recordingDuration: nextDuration,
+        micTokensAvailable: nextTokens,
       });
+
+      if (micTokenCustomerId && typeof nextTokens === "number") {
+        const { error } = await supabase
+          .from("customers")
+          .update({ mic_tokens: nextTokens })
+          .eq("id", micTokenCustomerId);
+
+        if (error) {
+          console.error("Failed to update mic tokens:", error);
+        }
+      }
+
+      if (nextTokens === 0) {
+        await MicTranscriptionService.stopRecording();
+      }
     }, 1000);
 
     try {
@@ -364,6 +432,7 @@ export const MicTranscriptionService = {
     clearDurationTimer();
 
     isRecording = false;
+    micTokenCustomerId = null;
 
     if (subscription) {
       subscription.remove();
@@ -390,6 +459,7 @@ export const MicTranscriptionService = {
       recordingName: "",
       recordingDuration: 0,
       recordingUri: null,
+      micTokensAvailable: null,
       isRecording: false,
     });
   },

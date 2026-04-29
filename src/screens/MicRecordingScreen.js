@@ -29,6 +29,7 @@ export default function MicRecordingScreen({ navigation }) {
   const [recordingName, setRecordingName] = useState("");
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingUri, setRecordingUri] = useState(null);
+  const [micTokensAvailable, setMicTokensAvailable] = useState(null);
 
   useEffect(() => {
     return MicTranscriptionService.subscribe((nextState) => {
@@ -39,7 +40,39 @@ export default function MicRecordingScreen({ navigation }) {
       setRecordingName(nextState.recordingName);
       setRecordingDuration(nextState.recordingDuration);
       setRecordingUri(nextState.recordingUri);
+      if (typeof nextState.micTokensAvailable === "number") {
+        setMicTokensAvailable(nextState.micTokensAvailable);
+      }
     });
+  }, []);
+
+  useEffect(() => {
+    async function loadCurrentMicTokens() {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user?.id) {
+        console.error("Failed to get Supabase user for mic tokens:", userError);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, mic_tokens")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        console.error("Failed to load current mic tokens:", error);
+        return;
+      }
+
+      setMicTokensAvailable(data?.mic_tokens ?? 0);
+    }
+
+    loadCurrentMicTokens();
   }, []);
 
   const audioStreamRef = useRef(null);
@@ -289,6 +322,12 @@ export default function MicRecordingScreen({ navigation }) {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Recording status</Text>
           <Text style={styles.statusText}>{recordingStatus}</Text>
+          <Text>
+            Mic seconds left:{" "}
+            {typeof micTokensAvailable === "number"
+              ? micTokensAvailable
+              : "Loading..."}
+          </Text>
         </View>
 
         <View style={styles.card}>
