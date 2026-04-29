@@ -16,6 +16,8 @@ let isRecording = false;
 let pendingChunks = [];
 let pendingBytes = 0;
 let micTokenCustomerId = null;
+let recordingStartedAtMs = null;
+let micTokensAtStart = null;
 
 const state = {
   recordingStatus: "idle",
@@ -285,6 +287,9 @@ export const MicTranscriptionService = {
       return;
     }
 
+    recordingStartedAtMs = Date.now();
+    micTokensAtStart = currentMicTokens;
+
     pendingChunks = [];
     pendingBytes = 0;
 
@@ -301,20 +306,22 @@ export const MicTranscriptionService = {
     clearDurationTimer();
 
     durationTimer = setInterval(async () => {
-      const nextDuration = state.recordingDuration + 1;
-      const currentTokens = state.micTokensAvailable;
+      if (!recordingStartedAtMs || typeof micTokensAtStart !== "number") {
+        return;
+      }
 
-      const nextTokens =
-        typeof currentTokens === "number"
-          ? Math.max(0, currentTokens - 1)
-          : currentTokens;
+      const elapsedSeconds = Math.floor(
+        (Date.now() - recordingStartedAtMs) / 1000,
+      );
+
+      const nextTokens = Math.max(0, micTokensAtStart - elapsedSeconds);
 
       updateState({
-        recordingDuration: nextDuration,
+        recordingDuration: elapsedSeconds,
         micTokensAvailable: nextTokens,
       });
 
-      if (micTokenCustomerId && typeof nextTokens === "number") {
+      if (micTokenCustomerId) {
         const { error } = await supabase
           .from("customers")
           .update({ mic_tokens: nextTokens })
@@ -433,6 +440,8 @@ export const MicTranscriptionService = {
 
     isRecording = false;
     micTokenCustomerId = null;
+    recordingStartedAtMs = null;
+    micTokensAtStart = null;
 
     if (subscription) {
       subscription.remove();
