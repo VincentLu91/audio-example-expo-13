@@ -266,6 +266,8 @@ export default function MicRecordingScreen({ navigation }) {
     }
 
     setSaveMessage("Mic recording saved.");
+
+    await MicTranscriptionService.reset();
     navigation.goBack();
   }
 

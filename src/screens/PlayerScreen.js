@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { ScrollView, View, Text, Pressable, StyleSheet } from "react-native";
 import {
+  createAudioPlayer,
   setAudioModeAsync,
-  useAudioPlayer,
   useAudioPlayerStatus,
 } from "expo-audio";
 import Slider from "@react-native-community/slider";
@@ -11,6 +11,9 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import Screen from "../components/Screen";
 import { supabase } from "../../lib/supabase";
 import { registerStopPlaybackHandler } from "../services/playbackControlService";
+
+const sharedPlaybackPlayer = createAudioPlayer(null);
+let loadedPlaybackSource = null;
 
 function formatTime(seconds) {
   if (!seconds || Number.isNaN(seconds)) {
@@ -48,8 +51,18 @@ export default function PlayerScreen({ route }) {
         .getPublicUrl(recording.original_file_name).data.publicUrl
     : "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
   const source = audioSource;
-  const player = useAudioPlayer(source);
+  const player = sharedPlaybackPlayer;
   const status = useAudioPlayerStatus(player);
+
+  useEffect(() => {
+    if (!source) return;
+
+    if (loadedPlaybackSource !== source) {
+      player.pause();
+      player.replace(source);
+      loadedPlaybackSource = source;
+    }
+  }, [source, player]);
 
   useEffect(() => {
     setAudioModeAsync({
