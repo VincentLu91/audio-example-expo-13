@@ -38,7 +38,12 @@
     },
     "plugins": [
       "@mykin-ai/expo-audio-stream",
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true
+        }
+      ],
       "expo-font",
       "expo-asset"
     ]

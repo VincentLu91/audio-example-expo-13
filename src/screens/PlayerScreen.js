@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ScrollView, View, Text, Pressable, StyleSheet } from "react-native";
-import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import {
+  setAudioModeAsync,
+  useAudioPlayer,
+  useAudioPlayerStatus,
+} from "expo-audio";
 import Slider from "@react-native-community/slider";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -45,6 +49,15 @@ export default function PlayerScreen({ route }) {
   const source = audioSource;
   const player = useAudioPlayer(source);
   const status = useAudioPlayerStatus(player);
+
+  useEffect(() => {
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: "doNotMix",
+    });
+  }, []);
+
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekValue, setSeekValue] = useState(0);
 
@@ -105,7 +118,13 @@ export default function PlayerScreen({ route }) {
             onPress={() => {
               if (status.playing) {
                 player.pause();
+                player.setActiveForLockScreen(false);
               } else {
+                player.setActiveForLockScreen(true, {
+                  title: recording?.file_name || "Recording",
+                  artist: "Audio App",
+                });
+
                 player.play();
               }
             }}
