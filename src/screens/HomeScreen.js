@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useCallback } from "react";
@@ -104,6 +105,7 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [deletingRecordingKey, setDeletingRecordingKey] = useState(null);
+  const [searchText, setSearchText] = useState("");
 
   useFocusEffect(
     useCallback(() => {
@@ -239,6 +241,24 @@ export default function HomeScreen({ navigation }) {
     setDeletingRecordingKey(null);
   }
 
+  const normalizedSearchText = searchText.trim().toLowerCase();
+
+  const filteredRecordings = normalizedSearchText
+    ? recordings.filter((recording) => {
+        const searchableText = [
+          recording.file_name,
+          recording.original_file_name,
+          recording.full_transcript,
+          recording.recordingType,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(normalizedSearchText);
+      })
+    : recordings;
+
   function renderRecording({ item }) {
     const title =
       item.file_name || item.original_file_name || "Untitled recording";
@@ -330,15 +350,26 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.phoneButtonText}>New mic recording</Text>
       </Pressable>
 
+      <TextInput
+        style={styles.searchInput}
+        value={searchText}
+        onChangeText={setSearchText}
+        placeholder="Search recordings or transcripts"
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
+
       {loading ? (
         <ActivityIndicator />
       ) : errorMessage ? (
         <Text style={styles.errorText}>{errorMessage}</Text>
       ) : recordings.length === 0 ? (
         <Text>No recordings found.</Text>
+      ) : filteredRecordings.length === 0 ? (
+        <Text>No recordings match your search.</Text>
       ) : (
         <FlatList
-          data={recordings}
+          data={filteredRecordings}
           keyExtractor={(item) => `${item.recordingType}-${item.id}`}
           renderItem={renderRecording}
           contentContainerStyle={styles.list}
@@ -364,10 +395,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   list: {
+    width: "100%",
+    alignSelf: "stretch",
     gap: 12,
     paddingBottom: 24,
   },
   card: {
+    width: "100%",
     padding: 16,
     borderWidth: 1,
     borderColor: "#ddd",
@@ -449,6 +483,16 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontSize: 16,
+    marginBottom: 16,
+    backgroundColor: "white",
   },
   cardActions: {
     marginTop: 14,

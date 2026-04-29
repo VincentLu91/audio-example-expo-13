@@ -5,8 +5,8 @@ export default function Screen({ children }) {
     <SafeAreaView
       style={{
         flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
+        justifyContent: "flex-start",
+        alignItems: "stretch",
         padding: 16,
       }}
     >
