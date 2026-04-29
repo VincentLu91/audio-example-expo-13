@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -13,6 +14,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import Screen from "../components/Screen";
 import { ROUTES } from "../constants/routes";
 import { supabase } from "../../lib/supabase";
+import { stopActivePlayback } from "../services/playbackControlService";
 
 function formatDuration(duration) {
   if (duration === null || duration === undefined || duration === "") {
@@ -101,6 +103,7 @@ export default function HomeScreen({ navigation }) {
   const [recordings, setRecordings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [deletingRecordingKey, setDeletingRecordingKey] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -165,11 +168,83 @@ export default function HomeScreen({ navigation }) {
     setLoading(false);
   }
 
+  function getRecordingKey(recording) {
+    return `${recording.recordingType}-${recording.id}`;
+  }
+
+  function confirmDeleteRecording(recording) {
+    const title =
+      recording.file_name || recording.original_file_name || "this recording";
+
+    Alert.alert(
+      "Delete recording?",
+      `Delete "${title}"? This will remove it from your recordings list.`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deleteRecording(recording),
+        },
+      ],
+    );
+  }
+
+  async function deleteRecording(recording) {
+    const recordingKey = getRecordingKey(recording);
+    const tableName =
+      recording.recordingType === "call" ? "call_recordings" : "mic_recordings";
+
+    setDeletingRecordingKey(recordingKey);
+    setErrorMessage("");
+
+    try {
+      await stopActivePlayback();
+    } catch (playbackError) {
+      console.warn("Stop playback before delete warning:", playbackError);
+    }
+
+    const { error: deleteError } = await supabase
+      .from(tableName)
+      .delete()
+      .eq("id", recording.id)
+      .eq("customer_id", recording.customer_id);
+
+    if (deleteError) {
+      console.error("Delete recording error:", deleteError);
+      setErrorMessage("Could not delete recording.");
+      setDeletingRecordingKey(null);
+      return;
+    }
+
+    if (recording.original_file_name) {
+      const { error: storageError } = await supabase.storage
+        .from("recreate-ai-storage-bucket")
+        .remove([recording.original_file_name]);
+
+      if (storageError) {
+        console.warn("Storage delete warning:", storageError);
+      }
+    }
+
+    setRecordings((currentRecordings) =>
+      currentRecordings.filter(
+        (item) => getRecordingKey(item) !== recordingKey,
+      ),
+    );
+
+    setDeletingRecordingKey(null);
+  }
+
   function renderRecording({ item }) {
     const title =
       item.file_name || item.original_file_name || "Untitled recording";
-
     const transcriptReady = hasTranscript(item);
+    const recordingKey = getRecordingKey(item);
+    const isDeleting = deletingRecordingKey === recordingKey;
 
     return (
       <Pressable
@@ -211,6 +286,21 @@ export default function HomeScreen({ navigation }) {
           >
             {transcriptReady ? "Transcript ready" : "No transcript yet"}
           </Text>
+        </View>
+
+        <View style={styles.cardActions}>
+          <Pressable
+            style={[styles.deleteButton, isDeleting && styles.disabledButton]}
+            disabled={isDeleting}
+            onPress={(event) => {
+              event.stopPropagation();
+              confirmDeleteRecording(item);
+            }}
+          >
+            <Text style={styles.deleteButtonText}>
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Text>
+          </Pressable>
         </View>
       </Pressable>
     );
@@ -359,5 +449,23 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  cardActions: {
+    marginTop: 14,
+    alignItems: "flex-end",
+  },
+  deleteButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: "#fee2e2",
+  },
+  deleteButtonText: {
+    color: "#b91c1c",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 });
