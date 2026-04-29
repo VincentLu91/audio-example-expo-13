@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { useEffect, useRef, useState } from "react";
+import { stopActivePlayback } from "../services/playbackControlService";
 
 import Screen from "../components/Screen";
 import {
@@ -391,6 +392,8 @@ export default function PhoneRecordingScreen({ navigation }) {
       setCallStatus("Missing phone number");
       return;
     }
+
+    await stopActivePlayback();
 
     setErrorMessage("");
     setCallSession(null);

@@ -11,6 +11,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import Screen from "../components/Screen";
 import { supabase } from "../../lib/supabase";
 import { registerStopPlaybackHandler } from "../services/playbackControlService";
+import { MicTranscriptionService } from "../services/micTranscriptionService";
 
 const sharedPlaybackPlayer = createAudioPlayer(null);
 let loadedPlaybackSource = null;
@@ -73,7 +74,7 @@ export default function PlayerScreen({ route }) {
   }, []);
 
   useEffect(() => {
-    return registerStopPlaybackHandler(async () => {
+    registerStopPlaybackHandler(async () => {
       player.pause();
       player.setActiveForLockScreen(false);
     });
@@ -85,6 +86,17 @@ export default function PlayerScreen({ route }) {
   const duration = status.duration || 0;
   const currentTime = isSeeking ? seekValue : status.currentTime || 0;
   const transcriptText = recording?.full_transcript?.trim() || "";
+
+  async function stopMicRecordingBeforePlayback() {
+    const micState = MicTranscriptionService.getState();
+
+    if (
+      micState.isRecording ||
+      ["recording", "connected"].includes(micState.recordingStatus)
+    ) {
+      await MicTranscriptionService.stopRecording();
+    }
+  }
 
   return (
     <Screen>
@@ -136,11 +148,13 @@ export default function PlayerScreen({ route }) {
         <View style={styles.controlsRow}>
           <PlayerButton
             iconName={status.playing ? "pause-circle" : "play-circle"}
-            onPress={() => {
+            onPress={async () => {
               if (status.playing) {
                 player.pause();
                 player.setActiveForLockScreen(false);
               } else {
+                await stopMicRecordingBeforePlayback();
+
                 player.setActiveForLockScreen(true, {
                   title: recording?.file_name || "Recording",
                   artist: "Audio App",
@@ -154,7 +168,13 @@ export default function PlayerScreen({ route }) {
           <PlayerButton
             iconName="refresh"
             onPress={async () => {
+              await stopMicRecordingBeforePlayback();
+
               await player.seekTo(0);
+              player.setActiveForLockScreen(true, {
+                title: recording?.file_name || "Recording",
+                artist: "Audio App",
+              });
               player.play();
             }}
           />
