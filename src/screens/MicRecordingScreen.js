@@ -414,6 +414,7 @@ export default function MicRecordingScreen({ navigation }) {
     }
 
     setSaveMessage("Mic recording saved.");
+    navigation.goBack();
   }
 
   const canSaveRecording =
