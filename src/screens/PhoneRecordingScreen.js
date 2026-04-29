@@ -306,6 +306,51 @@ export default function PhoneRecordingScreen({ navigation }) {
       return;
     }
 
+    // Download and upload the audio file to Supabase storage
+    try {
+      if (!completedRecording.recordingUrl) {
+        setErrorMessage("Recording URL not available.");
+        setIsSaving(false);
+        return;
+      }
+
+      console.log(
+        "[DEBUG] Fetching phone recording from URL:",
+        completedRecording.recordingUrl,
+      );
+
+      const response = await fetch(completedRecording.recordingUrl);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Get the raw data as array buffer
+      const arrayBuffer = await response.arrayBuffer();
+      console.log("[DEBUG] ArrayBuffer created, size:", arrayBuffer.byteLength);
+
+      // Upload to Supabase storage
+      const { error: uploadError } = await supabase.storage
+        .from("recreate-ai-storage-bucket")
+        .upload(storageFileName, arrayBuffer, {
+          contentType: "audio/mp3",
+        });
+
+      if (uploadError) {
+        console.error("Storage upload error:", uploadError);
+        setErrorMessage("Failed to upload audio file.");
+        setIsSaving(false);
+        return;
+      }
+
+      console.log("[DEBUG] Audio file uploaded successfully:", storageFileName);
+    } catch (uploadError) {
+      console.error("Upload error:", uploadError);
+      setErrorMessage(`Failed to upload audio file: ${String(uploadError)}`);
+      setIsSaving(false);
+      return;
+    }
+
     const { error } = await supabase.from("call_recordings").insert([
       {
         customer_id: user.id,
