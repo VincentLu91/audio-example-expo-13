@@ -233,6 +233,13 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.phoneButtonText}>New phone recording</Text>
       </Pressable>
 
+      <Pressable
+        style={styles.phoneButton}
+        onPress={() => navigation.navigate(ROUTES.MIC_RECORDING)}
+      >
+        <Text style={styles.phoneButtonText}>New mic recording</Text>
+      </Pressable>
+
       {loading ? (
         <ActivityIndicator />
       ) : errorMessage ? (

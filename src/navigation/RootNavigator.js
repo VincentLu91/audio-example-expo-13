@@ -10,6 +10,7 @@ import DetailsScreen from "../screens/DetailsScreen";
 import LiveTranscriptionScreen from "../screens/LiveTranscriptionScreen";
 import PlayerScreen from "../screens/PlayerScreen";
 import PhoneRecordingScreen from "../screens/PhoneRecordingScreen";
+import MicRecordingScreen from "../screens/MicRecordingScreen";
 
 import { supabase } from "../../lib/supabase";
 
@@ -60,6 +61,11 @@ export default function RootNavigator() {
               name={ROUTES.PHONE_RECORDING}
               component={PhoneRecordingScreen}
               options={{ title: "Phone Recording" }}
+            />
+            <Stack.Screen
+              name={ROUTES.MIC_RECORDING}
+              component={MicRecordingScreen}
+              options={{ title: "Mic Recording" }}
             />
           </>
         ) : (

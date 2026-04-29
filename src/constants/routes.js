@@ -5,4 +5,5 @@ export const ROUTES = {
   LIVE_TRANSCRIPTION: "LiveTranscription",
   PHONE_RECORDING: "PhoneRecording",
   PLAYER: "Player",
+  MIC_RECORDING: "MicRecording",
 };
