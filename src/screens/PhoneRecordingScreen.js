@@ -16,6 +16,7 @@ import {
   startPhoneCall,
 } from "../services/phoneCallService";
 import { PhoneTranscriptionService } from "../services/phoneTranscriptionService";
+import { MicTranscriptionService } from "../services/micTranscriptionService";
 import { supabase } from "../../lib/supabase";
 
 function getCallSessionStatusLabel(status) {
@@ -394,6 +395,15 @@ export default function PhoneRecordingScreen({ navigation }) {
     }
 
     await stopActivePlayback();
+
+    const micState = MicTranscriptionService.getState();
+
+    if (
+      micState.isRecording ||
+      ["recording", "connected"].includes(micState.recordingStatus)
+    ) {
+      await MicTranscriptionService.stopRecording();
+    }
 
     setErrorMessage("");
     setCallSession(null);
