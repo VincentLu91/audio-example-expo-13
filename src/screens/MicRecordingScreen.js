@@ -3,6 +3,8 @@ import { ExpoPlayAudioStream } from "@mykin-ai/expo-audio-stream";
 import { AudioModule } from "expo-audio";
 import { Buffer } from "buffer";
 import {
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -341,109 +343,118 @@ export default function MicRecordingScreen({ navigation }) {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Mic Recording</Text>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        <ScrollView contentContainerStyle={styles.container}>
+          <Text style={styles.title}>Mic Recording</Text>
 
-        <Text style={styles.subtitle}>
-          Record from the microphone, transcribe live, then save it to your
-          recordings list.
-        </Text>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Recording status</Text>
-          <Text style={styles.statusText}>{recordingStatus}</Text>
-          <Text>
-            Mic seconds left:{" "}
-            {typeof micTokensAvailable === "number"
-              ? micTokensAvailable
-              : "Loading..."}
+          <Text style={styles.subtitle}>
+            Record from the microphone, transcribe live, then save it to your
+            recordings list.
           </Text>
-        </View>
 
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Text style={styles.cardTitle}>Live transcript</Text>
-
-            {transcriptText.trim().length > 0 ? (
-              <Pressable
-                onPress={copyTranscriptToClipboard}
-                hitSlop={8}
-                style={styles.copyButton}
-              >
-                <Text style={styles.copyButtonText}>
-                  {transcriptCopied ? "Copied" : "Copy"}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
-          <View style={styles.transcriptBox}>
-            <Text style={styles.transcriptText}>
-              {transcriptText ||
-                "Live transcript will appear here after recording starts."}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Recording status</Text>
+            <Text style={styles.statusText}>{recordingStatus}</Text>
+            <Text>
+              Mic seconds left:{" "}
+              {typeof micTokensAvailable === "number"
+                ? micTokensAvailable
+                : "Loading..."}
             </Text>
           </View>
-        </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Recording name</Text>
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardTitle}>Live transcript</Text>
 
-          <TextInput
-            style={styles.input}
-            value={recordingName}
-            onChangeText={(text) => {
-              setRecordingName(text);
-              MicTranscriptionService.setRecordingName(text);
-            }}
-            placeholder="Example: Team meeting notes"
-            autoCapitalize="sentences"
-          />
-        </View>
+              {transcriptText.trim().length > 0 ? (
+                <Pressable
+                  onPress={copyTranscriptToClipboard}
+                  hitSlop={8}
+                  style={styles.copyButton}
+                >
+                  <Text style={styles.copyButtonText}>
+                    {transcriptCopied ? "Copied" : "Copy"}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+            <View style={styles.transcriptBox}>
+              <Text style={styles.transcriptText}>
+                {transcriptText ||
+                  "Live transcript will appear here after recording starts."}
+              </Text>
+            </View>
+          </View>
 
-        {transcriptText.trim().length > 0 && (
-          <Pressable
-            style={[
-              styles.primaryButton,
-              !canSaveRecording && styles.disabledButton,
-            ]}
-            onPress={handleSaveRecording}
-            disabled={!canSaveRecording}
-          >
-            <Text style={styles.primaryButtonText}>Save recording</Text>
-          </Pressable>
-        )}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Recording name</Text>
 
-        {!["recording", "connected"].includes(recordingStatus) ? (
-          <Pressable
-            style={[
-              styles.primaryButton,
-              recordingStatus === "stopped" && styles.disabledButton,
-            ]}
-            onPress={handleStartRecording}
-            disabled={recordingStatus === "stopped"}
-          >
-            <Text style={styles.primaryButtonText}>Start mic recording</Text>
-          </Pressable>
-        ) : (
+            <TextInput
+              style={styles.input}
+              value={recordingName}
+              onChangeText={(text) => {
+                setRecordingName(text);
+                MicTranscriptionService.setRecordingName(text);
+              }}
+              placeholder="Example: Team meeting notes"
+              autoCapitalize="sentences"
+            />
+          </View>
+
+          {transcriptText.trim().length > 0 && (
+            <Pressable
+              style={[
+                styles.primaryButton,
+                !canSaveRecording && styles.disabledButton,
+              ]}
+              onPress={handleSaveRecording}
+              disabled={!canSaveRecording}
+            >
+              <Text style={styles.primaryButtonText}>Save recording</Text>
+            </Pressable>
+          )}
+
+          {!["recording", "connected"].includes(recordingStatus) ? (
+            <Pressable
+              style={[
+                styles.primaryButton,
+                recordingStatus === "stopped" && styles.disabledButton,
+              ]}
+              onPress={handleStartRecording}
+              disabled={recordingStatus === "stopped"}
+            >
+              <Text style={styles.primaryButtonText}>Start mic recording</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              style={styles.secondaryButton}
+              onPress={handleStopRecording}
+            >
+              <Text style={styles.secondaryButtonText}>Stop mic recording</Text>
+            </Pressable>
+          )}
+
           <Pressable
             style={styles.secondaryButton}
-            onPress={handleStopRecording}
+            onPress={() => navigation.goBack()}
           >
-            <Text style={styles.secondaryButtonText}>Stop mic recording</Text>
+            <Text style={styles.secondaryButtonText}>Back to recordings</Text>
           </Pressable>
-        )}
-
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.secondaryButtonText}>Back to recordings</Text>
-        </Pressable>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   container: {
     padding: 24,
     gap: 16,

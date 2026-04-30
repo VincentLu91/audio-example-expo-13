@@ -1,5 +1,7 @@
 import {
   AppState,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -473,224 +475,238 @@ export default function PhoneRecordingScreen({ navigation }) {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Phone Recording</Text>
-        <Text style={styles.statusText}>
-          Phone transcript status: {phoneTranscription.callStatus || "Idle"}
-        </Text>
-
-        <Text style={styles.subtitle}>
-          Dial a phone number through your backend, capture the transcript, then
-          save it to your recordings list.
-        </Text>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Call setup</Text>
-
-          <Text style={styles.label}>Phone number</Text>
-          <TextInput
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            placeholder="Enter phone number"
-            keyboardType="phone-pad"
-            style={styles.input}
-          />
-
-          <Text style={styles.helperText}>
-            Phone validation and dialing logic will be connected later.
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        <ScrollView contentContainerStyle={styles.container}>
+          <Text style={styles.title}>Phone Recording</Text>
+          <Text style={styles.statusText}>
+            Phone transcript status: {phoneTranscription.callStatus || "Idle"}
           </Text>
-          {errorMessage ? (
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          ) : null}
-          {successMessage ? (
-            <Text style={styles.successText}>{successMessage}</Text>
-          ) : null}
-        </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Call availability</Text>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Calls available</Text>
-            <Text style={styles.detailValue}>
-              {callsAvailable === null ? "Not checked yet" : callsAvailable}
-            </Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Plan status</Text>
-            <Text style={styles.detailValue}>Not connected yet</Text>
-          </View>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Recording status</Text>
-
-          <Text style={styles.statusText}>{callStatus}</Text>
-
-          <Text style={styles.cardDescription}>
-            Later this will show whether the call is dialing, recording,
-            transcribing, completed, or failed.
+          <Text style={styles.subtitle}>
+            Dial a phone number through your backend, capture the transcript,
+            then save it to your recordings list.
           </Text>
-        </View>
-        {callSession ? (
+
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Call session</Text>
+            <Text style={styles.cardTitle}>Call setup</Text>
 
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Status</Text>
-              <Text style={styles.detailValue}>
-                {getCallSessionStatusLabel(callSession.status)}
-              </Text>
-            </View>
+            <Text style={styles.label}>Phone number</Text>
+            <TextInput
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              placeholder="Enter phone number"
+              keyboardType="phone-pad"
+              style={styles.input}
+            />
 
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Session ID</Text>
-              <Text style={styles.detailValue}>
-                {callSession.callSessionId}
-              </Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Provider ID</Text>
-              <Text style={styles.detailValue}>
-                {callSession.providerCallId}
-              </Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Phone number</Text>
-              <Text style={styles.detailValue}>{callSession.phoneNumber}</Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Started</Text>
-              <Text style={styles.detailValue}>
-                {formatCallStartedAt(callSession.startedAt)}
-              </Text>
-            </View>
-          </View>
-        ) : null}
-
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Text style={styles.cardTitle}>Live transcript</Text>
-
-            {liveTranscriptText ? (
-              <Pressable
-                onPress={copyTranscriptToClipboard}
-                hitSlop={8}
-                style={styles.copyButton}
-              >
-                <Text style={styles.copyButtonText}>
-                  {transcriptCopied ? "Copied" : "Copy"}
-                </Text>
-              </Pressable>
+            <Text style={styles.helperText}>
+              Phone validation and dialing logic will be connected later.
+            </Text>
+            {errorMessage ? (
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            ) : null}
+            {successMessage ? (
+              <Text style={styles.successText}>{successMessage}</Text>
             ) : null}
           </View>
 
-          <View style={styles.transcriptBox}>
-            <Text style={styles.transcriptText}>
-              {phoneTranscription.transcript ||
-                "Live transcript will appear here after the call connects."}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Call availability</Text>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Calls available</Text>
+              <Text style={styles.detailValue}>
+                {callsAvailable === null ? "Not checked yet" : callsAvailable}
+              </Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Plan status</Text>
+              <Text style={styles.detailValue}>Not connected yet</Text>
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Recording status</Text>
+
+            <Text style={styles.statusText}>{callStatus}</Text>
+
+            <Text style={styles.cardDescription}>
+              Later this will show whether the call is dialing, recording,
+              transcribing, completed, or failed.
             </Text>
           </View>
-        </View>
+          {callSession ? (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Call session</Text>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Save recording</Text>
-
-          <Text style={styles.label}>Recording name</Text>
-          <TextInput
-            value={filename}
-            onChangeText={setFilename}
-            placeholder="Name this recording"
-            style={styles.input}
-          />
-
-          <Text style={styles.helperText}>
-            This section will be used after the call is complete.
-          </Text>
-
-          {isPhoneRecordingComplete ? (
-            <>
-              <SessionRow
-                label="Recording status"
-                value={completedRecording.recordingStatus || "Unknown"}
-              />
-              <SessionRow
-                label="Recording SID"
-                value={completedRecording.recordingSid || "Unknown"}
-              />
-              <SessionRow
-                label="Call SID"
-                value={completedRecording.callSid || "Unknown"}
-              />
-              <SessionRow
-                label="Duration"
-                value={
-                  completedRecording.recordingDuration
-                    ? `${completedRecording.recordingDuration} seconds`
-                    : "Unknown"
-                }
-              />
-              <Pressable
-                style={[
-                  styles.primaryButton,
-                  (!isPhoneRecordingComplete || isSaving) &&
-                    styles.primaryButtonDisabled,
-                ]}
-                onPress={handleSavePhoneRecording}
-                disabled={!isPhoneRecordingComplete || isSaving}
-              >
-                <Text style={styles.primaryButtonText}>
-                  {isSaving ? "Saving..." : "Save phone recording"}
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Status</Text>
+                <Text style={styles.detailValue}>
+                  {getCallSessionStatusLabel(callSession.status)}
                 </Text>
-              </Pressable>
-            </>
-          ) : (
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Session ID</Text>
+                <Text style={styles.detailValue}>
+                  {callSession.callSessionId}
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Provider ID</Text>
+                <Text style={styles.detailValue}>
+                  {callSession.providerCallId}
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Phone number</Text>
+                <Text style={styles.detailValue}>
+                  {callSession.phoneNumber}
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Started</Text>
+                <Text style={styles.detailValue}>
+                  {formatCallStartedAt(callSession.startedAt)}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardTitle}>Live transcript</Text>
+
+              {liveTranscriptText ? (
+                <Pressable
+                  onPress={copyTranscriptToClipboard}
+                  hitSlop={8}
+                  style={styles.copyButton}
+                >
+                  <Text style={styles.copyButtonText}>
+                    {transcriptCopied ? "Copied" : "Copy"}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+
+            <View style={styles.transcriptBox}>
+              <Text style={styles.transcriptText}>
+                {phoneTranscription.transcript ||
+                  "Live transcript will appear here after the call connects."}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Save recording</Text>
+
+            <Text style={styles.label}>Recording name</Text>
+            <TextInput
+              value={filename}
+              onChangeText={setFilename}
+              placeholder="Name this recording"
+              style={styles.input}
+            />
+
             <Text style={styles.helperText}>
-              Complete the call first, then recording details will appear here.
+              This section will be used after the call is complete.
             </Text>
-          )}
-        </View>
 
-        {!isPhoneRecordingComplete ? (
+            {isPhoneRecordingComplete ? (
+              <>
+                <SessionRow
+                  label="Recording status"
+                  value={completedRecording.recordingStatus || "Unknown"}
+                />
+                <SessionRow
+                  label="Recording SID"
+                  value={completedRecording.recordingSid || "Unknown"}
+                />
+                <SessionRow
+                  label="Call SID"
+                  value={completedRecording.callSid || "Unknown"}
+                />
+                <SessionRow
+                  label="Duration"
+                  value={
+                    completedRecording.recordingDuration
+                      ? `${completedRecording.recordingDuration} seconds`
+                      : "Unknown"
+                  }
+                />
+                <Pressable
+                  style={[
+                    styles.primaryButton,
+                    (!isPhoneRecordingComplete || isSaving) &&
+                      styles.primaryButtonDisabled,
+                  ]}
+                  onPress={handleSavePhoneRecording}
+                  disabled={!isPhoneRecordingComplete || isSaving}
+                >
+                  <Text style={styles.primaryButtonText}>
+                    {isSaving ? "Saving..." : "Save phone recording"}
+                  </Text>
+                </Pressable>
+              </>
+            ) : (
+              <Text style={styles.helperText}>
+                Complete the call first, then recording details will appear
+                here.
+              </Text>
+            )}
+          </View>
+
+          {!isPhoneRecordingComplete ? (
+            <Pressable
+              style={[
+                styles.primaryButton,
+                (isStartingCall || callSession || isPhoneRecordingComplete) &&
+                  styles.primaryButtonDisabled,
+              ]}
+              onPress={handleStartPhoneRecording}
+              disabled={
+                isStartingCall ||
+                Boolean(callSession) ||
+                isPhoneRecordingComplete
+              }
+            >
+              <Text style={styles.primaryButtonText}>
+                {isStartingCall
+                  ? "Starting..."
+                  : isPhoneRecordingComplete
+                  ? "Recording complete"
+                  : callSession
+                  ? "Call started"
+                  : "Start phone recording"}
+              </Text>
+            </Pressable>
+          ) : null}
+
           <Pressable
-            style={[
-              styles.primaryButton,
-              (isStartingCall || callSession || isPhoneRecordingComplete) &&
-                styles.primaryButtonDisabled,
-            ]}
-            onPress={handleStartPhoneRecording}
-            disabled={
-              isStartingCall || Boolean(callSession) || isPhoneRecordingComplete
-            }
+            style={styles.secondaryButton}
+            onPress={() => navigation.goBack()}
           >
-            <Text style={styles.primaryButtonText}>
-              {isStartingCall
-                ? "Starting..."
-                : isPhoneRecordingComplete
-                ? "Recording complete"
-                : callSession
-                ? "Call started"
-                : "Start phone recording"}
-            </Text>
+            <Text style={styles.secondaryButtonText}>Back to recordings</Text>
           </Pressable>
-        ) : null}
-
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.secondaryButtonText}>Back to recordings</Text>
-        </Pressable>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   container: {
     padding: 24,
     gap: 16,
