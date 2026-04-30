@@ -11,6 +11,44 @@ let playbackState = {
   duration: 0,
 };
 
+let playbackProgressTimer = null;
+
+function stopPlaybackProgressTimer() {
+  if (playbackProgressTimer) {
+    clearInterval(playbackProgressTimer);
+    playbackProgressTimer = null;
+  }
+}
+
+function startPlaybackProgressTimer() {
+  if (playbackProgressTimer) {
+    return;
+  }
+
+  playbackProgressTimer = setInterval(() => {
+    if (!playbackState.isPlaying || !playbackState.duration) {
+      return;
+    }
+
+    const nextCurrentTime = Math.min(
+      playbackState.currentTime + 1,
+      playbackState.duration,
+    );
+
+    playbackState = {
+      ...playbackState,
+      currentTime: nextCurrentTime,
+      isPlaying: nextCurrentTime < playbackState.duration,
+    };
+
+    notifyPlaybackStateListeners();
+
+    if (nextCurrentTime >= playbackState.duration) {
+      stopPlaybackProgressTimer();
+    }
+  }, 1000);
+}
+
 const playbackStateListeners = new Set();
 
 function notifyPlaybackStateListeners() {
@@ -51,6 +89,12 @@ export function setActivePlaybackStatus(status) {
     duration: status?.duration || 0,
   };
 
+  if (playbackState.isPlaying) {
+    startPlaybackProgressTimer();
+  } else {
+    stopPlaybackProgressTimer();
+  }
+
   notifyPlaybackStateListeners();
 }
 
@@ -60,10 +104,18 @@ export function setActivePlaybackIsPlaying(isPlaying) {
     isPlaying: Boolean(isPlaying),
   };
 
+  if (playbackState.isPlaying) {
+    startPlaybackProgressTimer();
+  } else {
+    stopPlaybackProgressTimer();
+  }
+
   notifyPlaybackStateListeners();
 }
 
 export function clearActivePlayback() {
+  stopPlaybackProgressTimer();
+
   playbackState = {
     activeRecording: null,
     isPlaying: false,
@@ -124,4 +176,11 @@ export async function seekActivePlayback(value) {
   if (playbackHandlers.seekTo) {
     await playbackHandlers.seekTo(value);
   }
+
+  playbackState = {
+    ...playbackState,
+    currentTime: value || 0,
+  };
+
+  notifyPlaybackStateListeners();
 }

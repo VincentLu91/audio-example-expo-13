@@ -12,6 +12,7 @@ import {
 import { useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import Slider from "@react-native-community/slider";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import Screen from "../components/Screen";
 import { ROUTES } from "../constants/routes";
@@ -104,6 +105,17 @@ function getRecordingTypeLabel(recordingType) {
 
 function hasTranscript(recording) {
   return Boolean(recording?.full_transcript?.trim());
+}
+
+function formatMiniPlayerTime(seconds) {
+  if (!seconds || Number.isNaN(seconds)) {
+    return "0:00";
+  }
+
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
 export default function HomeScreen({ navigation }) {
@@ -412,16 +424,27 @@ export default function HomeScreen({ navigation }) {
               maximumTrackTintColor="#d1d5db"
               thumbTintColor="#2563eb"
             />
+            <View style={styles.miniPlayerTimeRow}>
+              <Text style={styles.miniPlayerTimeText}>
+                {formatMiniPlayerTime(playbackState.currentTime)}
+              </Text>
+
+              <Text style={styles.miniPlayerTimeText}>
+                {formatMiniPlayerTime(playbackState.duration)}
+              </Text>
+            </View>
           </View>
 
           <View style={styles.miniPlayerActions}>
             <Pressable
-              style={styles.miniPlayerButton}
+              style={styles.miniPlayerIconButton}
               onPress={toggleActivePlayback}
             >
-              <Text style={styles.miniPlayerButtonText}>
-                {playbackState.isPlaying ? "Pause" : "Play"}
-              </Text>
+              <Ionicons
+                name={playbackState.isPlaying ? "pause" : "play"}
+                size={22}
+                color="white"
+              />
             </Pressable>
 
             <Pressable
@@ -436,10 +459,10 @@ export default function HomeScreen({ navigation }) {
             </Pressable>
 
             <Pressable
-              style={styles.miniPlayerStopButton}
+              style={styles.miniPlayerStopIconButton}
               onPress={stopActivePlayback}
             >
-              <Text style={styles.miniPlayerStopButtonText}>Stop</Text>
+              <Ionicons name="stop" size={20} color="#374151" />
             </Pressable>
           </View>
         </View>
@@ -647,5 +670,30 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 32,
     marginTop: 4,
+  },
+  miniPlayerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#2563eb",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  miniPlayerStopIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  miniPlayerTimeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  miniPlayerTimeText: {
+    fontSize: 11,
+    color: "#6b7280",
   },
 });
