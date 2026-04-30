@@ -450,7 +450,7 @@ export default function HomeScreen({ navigation }) {
             <Pressable
               style={styles.miniPlayerButton}
               onPress={() =>
-                navigation.push(ROUTES.PLAYER, {
+                navigation.navigate(ROUTES.PLAYER, {
                   recording: playbackState.activeRecording,
                 })
               }
@@ -607,7 +607,7 @@ const styles = StyleSheet.create({
   miniPlayer: {
     width: "100%",
     padding: 12,
-    marginBottom: 32,
+    marginBottom: 0,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#d1d5db",

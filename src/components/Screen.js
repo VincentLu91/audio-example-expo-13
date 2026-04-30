@@ -1,13 +1,13 @@
-import { SafeAreaView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Screen({ children }) {
   return (
     <SafeAreaView
+      edges={["top", "left", "right"]}
       style={{
         flex: 1,
-        justifyContent: "flex-start",
-        alignItems: "stretch",
-        padding: 16,
+        paddingHorizontal: 16,
+        paddingTop: 16,
       }}
     >
       {children}

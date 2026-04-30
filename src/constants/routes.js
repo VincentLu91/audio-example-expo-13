@@ -1,5 +1,6 @@
 export const ROUTES = {
   LOGIN: "Login",
+  MAIN_TABS: "MainTabs",
   HOME: "Home",
   DETAILS: "Details",
   LIVE_TRANSCRIPTION: "LiveTranscription",
