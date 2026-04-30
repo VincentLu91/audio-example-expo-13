@@ -7,6 +7,20 @@ import { supabase } from "../../lib/supabase";
 export default function AccountScreen() {
   const [signingOut, setSigningOut] = useState(false);
 
+  function confirmSignOut() {
+    Alert.alert("Sign out?", "You will need to sign in again to use the app.", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Sign out",
+        style: "destructive",
+        onPress: handleSignOut,
+      },
+    ]);
+  }
+
   async function handleSignOut() {
     setSigningOut(true);
 
@@ -30,7 +44,7 @@ export default function AccountScreen() {
 
         <Pressable
           style={[styles.button, signingOut && styles.buttonDisabled]}
-          onPress={handleSignOut}
+          onPress={confirmSignOut}
           disabled={signingOut}
         >
           <Text style={styles.buttonText}>
