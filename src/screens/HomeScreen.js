@@ -362,20 +362,6 @@ export default function HomeScreen({ navigation }) {
         </Pressable>
       </View>
 
-      <Pressable
-        style={styles.phoneButton}
-        onPress={() => navigation.navigate(ROUTES.PHONE_RECORDING)}
-      >
-        <Text style={styles.phoneButtonText}>New phone recording</Text>
-      </Pressable>
-
-      <Pressable
-        style={styles.phoneButton}
-        onPress={() => navigation.navigate(ROUTES.MIC_RECORDING)}
-      >
-        <Text style={styles.phoneButtonText}>New mic recording</Text>
-      </Pressable>
-
       <TextInput
         style={styles.searchInput}
         value={searchText}
@@ -562,20 +548,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: "red",
   },
-  phoneButton: {
-    backgroundColor: "#111827",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 16,
-  },
 
-  phoneButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
   searchInput: {
     borderWidth: 1,
     borderColor: "#d1d5db",
