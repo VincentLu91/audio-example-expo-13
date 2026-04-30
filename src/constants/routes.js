@@ -7,4 +7,5 @@ export const ROUTES = {
   PHONE_RECORDING: "PhoneRecording",
   PLAYER: "Player",
   MIC_RECORDING: "MicRecording",
+  ACCOUNT: "Account",
 };

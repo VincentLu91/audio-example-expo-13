@@ -1,12 +1,26 @@
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import { ROUTES } from "../constants/routes";
 import HomeScreen from "../screens/HomeScreen";
 import MicRecordingScreen from "../screens/MicRecordingScreen";
 import PhoneRecordingScreen from "../screens/PhoneRecordingScreen";
+import AccountScreen from "../screens/AccountScreen";
+import PlayerScreen from "../screens/PlayerScreen";
 
 const Tab = createBottomTabNavigator();
+
+const HomeStack = createNativeStackNavigator();
+
+function HomeStackNavigator() {
+  return (
+    <HomeStack.Navigator screenOptions={{ headerShown: false }}>
+      <HomeStack.Screen name={ROUTES.HOME} component={HomeScreen} />
+      <HomeStack.Screen name={ROUTES.PLAYER} component={PlayerScreen} />
+    </HomeStack.Navigator>
+  );
+}
 
 function getTabIcon(routeName, focused, color, size) {
   let iconName = "ellipse-outline";
@@ -23,6 +37,10 @@ function getTabIcon(routeName, focused, color, size) {
     iconName = focused ? "call" : "call-outline";
   }
 
+  if (routeName === ROUTES.ACCOUNT) {
+    iconName = focused ? "person" : "person-outline";
+  }
+
   return <Ionicons name={iconName} size={size} color={color} />;
 }
 
@@ -37,7 +55,7 @@ export default function BottomTabsNavigator() {
     >
       <Tab.Screen
         name={ROUTES.HOME}
-        component={HomeScreen}
+        component={HomeStackNavigator}
         options={{ title: "Home" }}
       />
 
@@ -51,6 +69,12 @@ export default function BottomTabsNavigator() {
         name={ROUTES.PHONE_RECORDING}
         component={PhoneRecordingScreen}
         options={{ title: "Phone" }}
+      />
+
+      <Tab.Screen
+        name={ROUTES.ACCOUNT}
+        component={AccountScreen}
+        options={{ title: "Account" }}
       />
     </Tab.Navigator>
   );

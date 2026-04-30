@@ -147,115 +147,125 @@ export default function PlayerScreen({ route }) {
 
   return (
     <Screen>
-      <View style={styles.playerCard}>
-        <Text style={styles.title}>Audio Player</Text>
-        {recording && (
-          <>
-            <Text>Selected recording:</Text>
-            <Text>{recording.file_name || "Untitled recording"}</Text>
-            <Text>Type: {recording.recordingType}</Text>
-          </>
-        )}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.playerCard}>
+          <Text style={styles.title}>Audio Player</Text>
+          {recording && (
+            <>
+              <Text>Selected recording:</Text>
+              <Text>{recording.file_name || "Untitled recording"}</Text>
+              <Text>Type: {recording.recordingType}</Text>
+            </>
+          )}
 
-        <Text style={styles.statusText}>
-          Status: {status.playing ? "Playing" : "Paused"}
-        </Text>
+          <Text style={styles.statusText}>
+            Status: {status.playing ? "Playing" : "Paused"}
+          </Text>
 
-        <View style={styles.timeRow}>
-          <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-          <Text style={styles.timeText}>{formatTime(duration)}</Text>
-        </View>
+          <View style={styles.timeRow}>
+            <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+            <Text style={styles.timeText}>{formatTime(duration)}</Text>
+          </View>
 
-        <Slider
-          style={styles.slider}
-          minimumValue={0}
-          maximumValue={duration || 1}
-          value={Math.min(currentTime, duration || 1)}
-          minimumTrackTintColor="#4f46e5"
-          maximumTrackTintColor="#d1d5db"
-          thumbTintColor="#4f46e5"
-          disabled={!duration}
-          onSlidingStart={() => {
-            setIsSeeking(true);
-            setSeekValue(status.currentTime || 0);
-          }}
-          onValueChange={(value) => {
-            setSeekValue(value);
-          }}
-          onSlidingComplete={async (value) => {
-            setSeekValue(value);
-            await player.seekTo(value);
+          <Slider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={duration || 1}
+            value={Math.min(currentTime, duration || 1)}
+            minimumTrackTintColor="#4f46e5"
+            maximumTrackTintColor="#d1d5db"
+            thumbTintColor="#4f46e5"
+            disabled={!duration}
+            onSlidingStart={() => {
+              setIsSeeking(true);
+              setSeekValue(status.currentTime || 0);
+            }}
+            onValueChange={(value) => {
+              setSeekValue(value);
+            }}
+            onSlidingComplete={async (value) => {
+              setSeekValue(value);
+              await player.seekTo(value);
 
-            setTimeout(() => {
-              setIsSeeking(false);
-            }, 200);
-          }}
-        />
+              setTimeout(() => {
+                setIsSeeking(false);
+              }, 200);
+            }}
+          />
 
-        <View style={styles.controlsRow}>
-          <PlayerButton
-            iconName={status.playing ? "pause-circle" : "play-circle"}
-            onPress={async () => {
-              if (status.playing) {
-                player.pause();
-                player.setActiveForLockScreen(false);
-              } else {
+          <View style={styles.controlsRow}>
+            <PlayerButton
+              iconName={status.playing ? "pause-circle" : "play-circle"}
+              onPress={async () => {
+                if (status.playing) {
+                  player.pause();
+                  player.setActiveForLockScreen(false);
+                } else {
+                  await stopMicRecordingBeforePlayback();
+
+                  player.setActiveForLockScreen(true, {
+                    title: recording?.file_name || "Recording",
+                    artist: "Audio App",
+                  });
+
+                  player.play();
+                }
+              }}
+            />
+
+            <PlayerButton
+              iconName="refresh"
+              onPress={async () => {
                 await stopMicRecordingBeforePlayback();
 
+                await player.seekTo(0);
                 player.setActiveForLockScreen(true, {
                   title: recording?.file_name || "Recording",
                   artist: "Audio App",
                 });
-
                 player.play();
-              }
-            }}
-          />
+              }}
+            />
+          </View>
 
-          <PlayerButton
-            iconName="refresh"
-            onPress={async () => {
-              await stopMicRecordingBeforePlayback();
+          <View style={styles.controlsRow}>
+            <PlayerButton
+              iconName="play-back"
+              onPress={async () => {
+                await player.seekTo(Math.max(currentTime - 10, 0));
+              }}
+            />
 
-              await player.seekTo(0);
-              player.setActiveForLockScreen(true, {
-                title: recording?.file_name || "Recording",
-                artist: "Audio App",
-              });
-              player.play();
-            }}
-          />
+            <PlayerButton
+              iconName="play-forward"
+              onPress={async () => {
+                await player.seekTo(Math.min(currentTime + 10, duration));
+              }}
+            />
+          </View>
         </View>
+        <View style={styles.transcriptCard}>
+          <Text style={styles.transcriptTitle}>Transcript</Text>
 
-        <View style={styles.controlsRow}>
-          <PlayerButton
-            iconName="play-back"
-            onPress={async () => {
-              await player.seekTo(Math.max(currentTime - 10, 0));
-            }}
-          />
-
-          <PlayerButton
-            iconName="play-forward"
-            onPress={async () => {
-              await player.seekTo(Math.min(currentTime + 10, duration));
-            }}
-          />
+          {transcriptText ? (
+            <ScrollView
+              style={styles.transcriptScroll}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
+            >
+              <Text style={styles.transcriptText}>{transcriptText}</Text>
+            </ScrollView>
+          ) : (
+            <Text style={styles.emptyTranscriptText}>
+              No transcript found for this recording.
+            </Text>
+          )}
         </View>
-      </View>
-      <View style={styles.transcriptCard}>
-        <Text style={styles.transcriptTitle}>Transcript</Text>
-
-        {transcriptText ? (
-          <ScrollView style={styles.transcriptScroll}>
-            <Text style={styles.transcriptText}>{transcriptText}</Text>
-          </ScrollView>
-        ) : (
-          <Text style={styles.emptyTranscriptText}>
-            No transcript found for this recording.
-          </Text>
-        )}
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
@@ -347,5 +357,12 @@ const styles = StyleSheet.create({
   emptyTranscriptText: {
     color: "#9ca3af",
     fontSize: 15,
+  },
+  scroll: {
+    flex: 1,
+    width: "100%",
+  },
+  scrollContent: {
+    paddingBottom: 24,
   },
 });

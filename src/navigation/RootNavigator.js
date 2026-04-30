@@ -7,7 +7,6 @@ import { ROUTES } from "../constants/routes";
 import LoginScreen from "../screens/LoginScreen";
 import DetailsScreen from "../screens/DetailsScreen";
 import LiveTranscriptionScreen from "../screens/LiveTranscriptionScreen";
-import PlayerScreen from "../screens/PlayerScreen";
 import BottomTabsNavigator from "./BottomTabsNavigator";
 import { supabase } from "../../lib/supabase";
 
@@ -64,8 +63,6 @@ export default function RootNavigator() {
               name={ROUTES.LIVE_TRANSCRIPTION}
               component={LiveTranscriptionScreen}
             />
-
-            <Stack.Screen name={ROUTES.PLAYER} component={PlayerScreen} />
           </>
         ) : (
           <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
