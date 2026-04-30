@@ -12,11 +12,12 @@ import PlayerScreen from "../screens/PlayerScreen";
 const Tab = createBottomTabNavigator();
 
 const HomeStack = createNativeStackNavigator();
+const HOME_STACK_HOME = "HomeStackHome";
 
 function HomeStackNavigator() {
   return (
     <HomeStack.Navigator screenOptions={{ headerShown: false }}>
-      <HomeStack.Screen name={ROUTES.HOME} component={HomeScreen} />
+      <HomeStack.Screen name={HOME_STACK_HOME} component={HomeScreen} />
       <HomeStack.Screen name={ROUTES.PLAYER} component={PlayerScreen} />
     </HomeStack.Navigator>
   );
