@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { File } from "expo-file-system";
 import { decode } from "base64-arraybuffer";
+import * as Clipboard from "expo-clipboard";
 
 import Screen from "../components/Screen";
 import { supabase } from "../../lib/supabase";
@@ -30,6 +31,8 @@ export default function MicRecordingScreen({ navigation }) {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingUri, setRecordingUri] = useState(null);
   const [micTokensAvailable, setMicTokensAvailable] = useState(null);
+  const [transcriptCopied, setTranscriptCopied] = useState(false);
+  const transcriptCopyTimeoutRef = useRef(null);
 
   useEffect(() => {
     return MicTranscriptionService.subscribe((nextState) => {
@@ -73,6 +76,14 @@ export default function MicRecordingScreen({ navigation }) {
     }
 
     loadCurrentMicTokens();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (transcriptCopyTimeoutRef.current) {
+        clearTimeout(transcriptCopyTimeoutRef.current);
+      }
+    };
   }, []);
 
   const audioStreamRef = useRef(null);
@@ -309,6 +320,25 @@ export default function MicRecordingScreen({ navigation }) {
     recordingName.trim().length > 0 &&
     transcriptText.trim().length > 0;
 
+  async function copyTranscriptToClipboard() {
+    const textToCopy = transcriptText.trim();
+
+    if (!textToCopy) {
+      return;
+    }
+
+    await Clipboard.setStringAsync(textToCopy);
+    setTranscriptCopied(true);
+
+    if (transcriptCopyTimeoutRef.current) {
+      clearTimeout(transcriptCopyTimeoutRef.current);
+    }
+
+    transcriptCopyTimeoutRef.current = setTimeout(() => {
+      setTranscriptCopied(false);
+    }, 1600);
+  }
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.container}>
@@ -331,7 +361,21 @@ export default function MicRecordingScreen({ navigation }) {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Live transcript</Text>
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.cardTitle}>Live transcript</Text>
+
+            {transcriptText.trim().length > 0 ? (
+              <Pressable
+                onPress={copyTranscriptToClipboard}
+                hitSlop={8}
+                style={styles.copyButton}
+              >
+                <Text style={styles.copyButtonText}>
+                  {transcriptCopied ? "Copied" : "Copy"}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
           <View style={styles.transcriptBox}>
             <Text style={styles.transcriptText}>
               {transcriptText ||
@@ -481,5 +525,24 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5,
+  },
+  cardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  copyButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "#f3f4f6",
+  },
+
+  copyButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#374151",
   },
 });

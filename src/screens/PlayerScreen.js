@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollView, View, Text, Pressable, StyleSheet } from "react-native";
 import {
   createAudioPlayer,
@@ -7,6 +7,7 @@ import {
 } from "expo-audio";
 import Slider from "@react-native-community/slider";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import * as Clipboard from "expo-clipboard";
 
 import Screen from "../components/Screen";
 import { ROUTES } from "../constants/routes";
@@ -128,8 +129,18 @@ export default function PlayerScreen({ route, navigation }) {
     });
   }, [player, recording]);
 
+  useEffect(() => {
+    return () => {
+      if (transcriptCopyTimeoutRef.current) {
+        clearTimeout(transcriptCopyTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekValue, setSeekValue] = useState(0);
+  const [transcriptCopied, setTranscriptCopied] = useState(false);
+  const transcriptCopyTimeoutRef = useRef(null);
 
   const duration = status.duration || 0;
   const currentTime = isSeeking ? seekValue : status.currentTime || 0;
@@ -144,6 +155,23 @@ export default function PlayerScreen({ route, navigation }) {
     ) {
       await MicTranscriptionService.stopRecording();
     }
+  }
+
+  async function copyTranscriptToClipboard() {
+    if (!transcriptText) {
+      return;
+    }
+
+    await Clipboard.setStringAsync(transcriptText);
+    setTranscriptCopied(true);
+
+    if (transcriptCopyTimeoutRef.current) {
+      clearTimeout(transcriptCopyTimeoutRef.current);
+    }
+
+    transcriptCopyTimeoutRef.current = setTimeout(() => {
+      setTranscriptCopied(false);
+    }, 1600);
   }
 
   return (
@@ -262,7 +290,21 @@ export default function PlayerScreen({ route, navigation }) {
           </Pressable>
         ) : null}
         <View style={styles.transcriptCard}>
-          <Text style={styles.transcriptTitle}>Transcript</Text>
+          <View style={styles.transcriptHeaderRow}>
+            <Text style={styles.transcriptTitle}>Transcript</Text>
+
+            {transcriptText ? (
+              <Pressable
+                onPress={copyTranscriptToClipboard}
+                hitSlop={8}
+                style={styles.copyButton}
+              >
+                <Text style={styles.copyButtonText}>
+                  {transcriptCopied ? "Copied" : "Copy"}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
 
           {transcriptText ? (
             <ScrollView
@@ -357,7 +399,6 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 20,
     fontWeight: "700",
-    marginBottom: 12,
   },
   transcriptScroll: {
     maxHeight: 260,
@@ -391,5 +432,25 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "700",
+  },
+  transcriptHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 12,
+  },
+
+  copyButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "#f3f4f6",
+  },
+
+  copyButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#374151",
   },
 });

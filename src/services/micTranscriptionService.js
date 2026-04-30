@@ -139,9 +139,48 @@ async function connectSocket() {
     };
 
     ws.onerror = () => {
+      console.log("Mic transcription WebSocket error");
+
+      clearDurationTimer();
+
+      isRecording = false;
+      recordingStartedAtMs = null;
+      micTokensAtStart = null;
+
+      if (subscription) {
+        subscription.remove();
+        subscription = null;
+      }
+
+      ExpoPlayAudioStream.stopRecording()
+        .then((recording) => {
+          if (recording?.fileUri) {
+            updateState({
+              recordingUri: recording.fileUri,
+            });
+          }
+        })
+        .catch((error) => {
+          console.log(
+            "Stop mic recording after websocket error failed:",
+            error,
+          );
+        });
+
+      try {
+        if (ws) {
+          ws.close();
+        }
+      } catch {}
+
+      ws = null;
+      pendingChunks = [];
+      pendingBytes = 0;
+
       updateState({
         recordingStatus: "error",
-        errorMessage: "Mic transcription WebSocket error",
+        errorMessage: "Mic transcription WebSocket error. Recording stopped.",
+        isRecording: false,
       });
     };
 

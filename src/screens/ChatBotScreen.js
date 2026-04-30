@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as Clipboard from "expo-clipboard";
 import { supabase } from "../../lib/supabase";
 import {
   askRecordingAgent,
@@ -36,6 +37,8 @@ export default function ChatBotScreen({ route }) {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [copiedMessageKey, setCopiedMessageKey] = useState(null);
+  const copyResetTimeoutRef = useRef(null);
 
   const soundUrl = useMemo(() => {
     return getRecordingSoundUrl(recording);
@@ -76,6 +79,38 @@ export default function ChatBotScreen({ route }) {
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
   }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimeoutRef.current) {
+        clearTimeout(copyResetTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  async function copyMessageToClipboard(message, messageKey) {
+    const textToCopy = message?.trim();
+
+    if (!textToCopy) {
+      return;
+    }
+
+    try {
+      await Clipboard.setStringAsync(textToCopy);
+
+      setCopiedMessageKey(messageKey);
+
+      if (copyResetTimeoutRef.current) {
+        clearTimeout(copyResetTimeoutRef.current);
+      }
+
+      copyResetTimeoutRef.current = setTimeout(() => {
+        setCopiedMessageKey(null);
+      }, 1600);
+    } catch (error) {
+      setErrorMessage("Could not copy message.");
+    }
+  }
 
   async function sendMessage(messageText = userInput) {
     const trimmedMessage = messageText.trim();
@@ -176,18 +211,37 @@ export default function ChatBotScreen({ route }) {
 
               {messages.map((item, index) => {
                 const isUser = item.sender === "User";
+                const messageKey = `${item.sender}-${index}`;
+                const isCopied = copiedMessageKey === messageKey;
 
                 return (
                   <View
-                    key={`${item.sender}-${index}`}
+                    key={messageKey}
                     style={[
                       styles.messageBubble,
                       isUser ? styles.userBubble : styles.botBubble,
                     ]}
                   >
-                    <Text style={styles.senderText}>
-                      {isUser ? "You" : "AI Agent"}
-                    </Text>
+                    <View style={styles.messageHeaderRow}>
+                      <Text style={styles.senderText}>
+                        {isUser ? "You" : "AI Agent"}
+                      </Text>
+
+                      {!isUser ? (
+                        <Pressable
+                          onPress={() =>
+                            copyMessageToClipboard(item.message, messageKey)
+                          }
+                          hitSlop={8}
+                          style={styles.copyButton}
+                        >
+                          <Text style={styles.copyButtonText}>
+                            {isCopied ? "Copied" : "Copy"}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+
                     <Text style={styles.messageText}>{item.message}</Text>
                   </View>
                 );
@@ -310,7 +364,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: "#6b7280",
-    marginBottom: 4,
   },
   messageText: {
     fontSize: 15,
@@ -347,5 +400,25 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5,
+  },
+  messageHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 4,
+  },
+
+  copyButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: "#f3f4f6",
+  },
+
+  copyButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#374151",
   },
 });

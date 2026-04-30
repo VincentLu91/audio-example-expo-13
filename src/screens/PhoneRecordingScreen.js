@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { useEffect, useRef, useState } from "react";
+import * as Clipboard from "expo-clipboard";
 import { stopActivePlayback } from "../services/playbackControlService";
 
 import Screen from "../components/Screen";
@@ -85,6 +86,8 @@ export default function PhoneRecordingScreen({ navigation }) {
   );
   const [successMessage, setSuccessMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [transcriptCopied, setTranscriptCopied] = useState(false);
+  const transcriptCopyTimeoutRef = useRef(null);
 
   useEffect(() => {
     const unsubscribe = PhoneTranscriptionService.subscribe(
@@ -212,9 +215,18 @@ export default function PhoneRecordingScreen({ navigation }) {
     deductCompletedCallCredit();
   }, [phoneTranscription.callStatus, phoneTranscription.callRecordingInfo]);
 
+  useEffect(() => {
+    return () => {
+      if (transcriptCopyTimeoutRef.current) {
+        clearTimeout(transcriptCopyTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const [callsAvailable, setCallsAvailable] = useState(null);
   const callCreditDeductedRef = useRef(false);
   const completedRecording = phoneTranscription.callRecordingInfo;
+  const liveTranscriptText = phoneTranscription.transcript?.trim() || "";
   const isPhoneRecordingComplete =
     phoneTranscription.callStatus === "completed" && completedRecording;
 
@@ -442,6 +454,23 @@ export default function PhoneRecordingScreen({ navigation }) {
     }
   }
 
+  async function copyTranscriptToClipboard() {
+    if (!liveTranscriptText) {
+      return;
+    }
+
+    await Clipboard.setStringAsync(liveTranscriptText);
+    setTranscriptCopied(true);
+
+    if (transcriptCopyTimeoutRef.current) {
+      clearTimeout(transcriptCopyTimeoutRef.current);
+    }
+
+    transcriptCopyTimeoutRef.current = setTimeout(() => {
+      setTranscriptCopied(false);
+    }, 1600);
+  }
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.container}>
@@ -544,7 +573,21 @@ export default function PhoneRecordingScreen({ navigation }) {
         ) : null}
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Live transcript</Text>
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.cardTitle}>Live transcript</Text>
+
+            {liveTranscriptText ? (
+              <Pressable
+                onPress={copyTranscriptToClipboard}
+                hitSlop={8}
+                style={styles.copyButton}
+              >
+                <Text style={styles.copyButtonText}>
+                  {transcriptCopied ? "Copied" : "Copy"}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
 
           <View style={styles.transcriptBox}>
             <Text style={styles.transcriptText}>
@@ -803,5 +846,24 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: "#047857",
+  },
+  cardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  copyButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "#f3f4f6",
+  },
+
+  copyButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#374151",
   },
 });
