@@ -7,6 +7,7 @@ import { ROUTES } from "../constants/routes";
 import LoginScreen from "../screens/LoginScreen";
 import DetailsScreen from "../screens/DetailsScreen";
 import LiveTranscriptionScreen from "../screens/LiveTranscriptionScreen";
+import ChatBotScreen from "../screens/ChatBotScreen";
 import BottomTabsNavigator from "./BottomTabsNavigator";
 import { supabase } from "../../lib/supabase";
 
@@ -63,6 +64,8 @@ export default function RootNavigator() {
               name={ROUTES.LIVE_TRANSCRIPTION}
               component={LiveTranscriptionScreen}
             />
+
+            <Stack.Screen name={ROUTES.CHATBOT} component={ChatBotScreen} />
           </>
         ) : (
           <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />

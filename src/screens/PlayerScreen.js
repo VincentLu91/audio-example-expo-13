@@ -9,6 +9,7 @@ import Slider from "@react-native-community/slider";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import Screen from "../components/Screen";
+import { ROUTES } from "../constants/routes";
 import { supabase } from "../../lib/supabase";
 import {
   getPlaybackState,
@@ -49,7 +50,7 @@ function PlayerButton({ label, iconName, onPress }) {
   );
 }
 
-export default function PlayerScreen({ route }) {
+export default function PlayerScreen({ route, navigation }) {
   const recording = route?.params?.recording;
 
   const audioSource = recording?.original_file_name
@@ -248,6 +249,18 @@ export default function PlayerScreen({ route }) {
             />
           </View>
         </View>
+        {recording ? (
+          <Pressable
+            style={styles.chatButton}
+            onPress={() =>
+              navigation.navigate(ROUTES.CHATBOT, {
+                recording,
+              })
+            }
+          >
+            <Text style={styles.chatButtonText}>Chat with AI</Text>
+          </Pressable>
+        ) : null}
         <View style={styles.transcriptCard}>
           <Text style={styles.transcriptTitle}>Transcript</Text>
 
@@ -364,5 +377,19 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 24,
+  },
+  chatButton: {
+    width: "100%",
+    marginTop: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: "#2563eb",
+    alignItems: "center",
+  },
+  chatButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "700",
   },
 });
