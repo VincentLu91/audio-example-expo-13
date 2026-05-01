@@ -6,7 +6,10 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "deps:expo": "npx expo install --check && npx expo-doctor",
+    "deps:js:check": "npx npm-check-updates --target minor --reject \"expo,expo-*,@expo/*,react,react-dom,react-native,react-native-*,@react-native/*,@react-native-community/*,@react-native-async-storage/*,@react-navigation/*\"",
+    "deps:js:update": "npx npm-check-updates -u --target minor --reject \"expo,expo-*,@expo/*,react,react-dom,react-native,react-native-*,@react-native/*,@react-native-community/*,@react-native-async-storage/*,@react-navigation/*\" && npm install && npx expo install --check && npx expo-doctor"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
