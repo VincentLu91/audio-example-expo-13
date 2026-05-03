@@ -21,6 +21,7 @@ import {
 import { PhoneTranscriptionService } from "../services/phoneTranscriptionService";
 import { MicTranscriptionService } from "../services/micTranscriptionService";
 import { supabase } from "../../lib/supabase";
+import { theme } from "../theme/theme";
 
 function getCallSessionStatusLabel(status) {
   if (status === "call_start_requested") {
@@ -90,6 +91,7 @@ export default function PhoneRecordingScreen({ navigation }) {
   const [isSaving, setIsSaving] = useState(false);
   const [transcriptCopied, setTranscriptCopied] = useState(false);
   const transcriptCopyTimeoutRef = useRef(null);
+  const scrollViewRef = useRef(null);
 
   useEffect(() => {
     const unsubscribe = PhoneTranscriptionService.subscribe(
@@ -480,7 +482,11 @@ export default function PhoneRecordingScreen({ navigation }) {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
           <Text style={styles.title}>Phone Recording</Text>
           <Text style={styles.statusText}>
             Phone transcript status: {phoneTranscription.callStatus || "Idle"}
@@ -499,6 +505,7 @@ export default function PhoneRecordingScreen({ navigation }) {
               value={phoneNumber}
               onChangeText={setPhoneNumber}
               placeholder="Enter phone number"
+              placeholderTextColor={theme.colors.textMuted}
               keyboardType="phone-pad"
               style={styles.input}
             />
@@ -614,7 +621,17 @@ export default function PhoneRecordingScreen({ navigation }) {
               value={filename}
               onChangeText={setFilename}
               placeholder="Name this recording"
+              placeholderTextColor={theme.colors.textMuted}
               style={styles.input}
+              onFocus={() => {
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }, 250);
+
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }, 650);
+              }}
             />
 
             <Text style={styles.helperText}>
@@ -706,7 +723,9 @@ export default function PhoneRecordingScreen({ navigation }) {
 const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
+    backgroundColor: theme.colors.background,
   },
+
   container: {
     padding: 24,
     gap: 16,
@@ -716,47 +735,50 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "700",
+    color: theme.colors.textPrimary,
   },
 
   subtitle: {
     fontSize: 16,
-    color: "#4b5563",
+    color: theme.colors.textSecondary,
     lineHeight: 22,
   },
 
   card: {
     padding: 16,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: theme.colors.border,
     borderRadius: 14,
-    backgroundColor: "white",
+    backgroundColor: theme.colors.surface,
     gap: 10,
   },
 
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
+    color: theme.colors.textPrimary,
   },
 
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#374151",
+    color: theme.colors.textSecondary,
   },
 
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: theme.colors.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    backgroundColor: "#f9fafb",
+    backgroundColor: theme.colors.surfaceSoft,
+    color: theme.colors.textPrimary,
   },
 
   helperText: {
     fontSize: 13,
-    color: "#6b7280",
+    color: theme.colors.textMuted,
     lineHeight: 18,
   },
 
@@ -768,7 +790,7 @@ const styles = StyleSheet.create({
 
   detailLabel: {
     fontSize: 14,
-    color: "#6b7280",
+    color: theme.colors.textMuted,
   },
 
   detailValue: {
@@ -776,38 +798,38 @@ const styles = StyleSheet.create({
     textAlign: "right",
     fontSize: 14,
     fontWeight: "600",
-    color: "#111827",
+    color: theme.colors.textPrimary,
   },
 
   statusText: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111827",
+    color: theme.colors.textPrimary,
   },
 
   cardDescription: {
     fontSize: 14,
-    color: "#6b7280",
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
 
   transcriptBox: {
     minHeight: 140,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: theme.colors.border,
     borderRadius: 12,
     padding: 12,
-    backgroundColor: "#f9fafb",
+    backgroundColor: theme.colors.surfaceSoft,
   },
 
   transcriptText: {
     fontSize: 14,
-    color: "#4b5563",
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
 
   primaryButton: {
-    backgroundColor: "#111827",
+    backgroundColor: theme.colors.primary,
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 12,
@@ -819,7 +841,7 @@ const styles = StyleSheet.create({
   },
 
   primaryButtonText: {
-    color: "white",
+    color: theme.colors.textPrimary,
     fontSize: 16,
     fontWeight: "700",
   },
@@ -830,19 +852,22 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surfaceSoft,
   },
 
   secondaryButtonText: {
-    color: "#111827",
+    color: theme.colors.textPrimary,
     fontSize: 16,
     fontWeight: "600",
   },
+
   errorText: {
     fontSize: 13,
-    color: "#dc2626",
+    color: theme.colors.danger,
     fontWeight: "600",
   },
+
   sessionRow: {
     marginTop: 10,
   },
@@ -850,19 +875,21 @@ const styles = StyleSheet.create({
   sessionLabel: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#6B7280",
+    color: theme.colors.textMuted,
   },
 
   sessionValue: {
     marginTop: 2,
     fontSize: 14,
-    color: "#111827",
+    color: theme.colors.textPrimary,
   },
+
   successText: {
     marginTop: 12,
     fontSize: 14,
-    color: "#047857",
+    color: theme.colors.success,
   },
+
   cardHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -874,12 +901,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: theme.colors.surfaceSoft,
   },
 
   copyButtonText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#374151",
+    color: theme.colors.textPrimary,
   },
 });
