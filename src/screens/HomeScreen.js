@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 
@@ -342,9 +343,15 @@ export default function HomeScreen({ navigation }) {
               confirmDeleteRecording(item);
             }}
           >
-            <Text style={styles.deleteButtonText}>
-              {isDeleting ? "Deleting..." : "Delete"}
-            </Text>
+            {isDeleting ? (
+              <ActivityIndicator size="small" color={theme.colors.danger} />
+            ) : (
+              <Ionicons
+                name="trash-outline"
+                size={20}
+                color={theme.colors.danger}
+              />
+            )}
           </Pressable>
         </View>
       </Pressable>
@@ -435,10 +442,12 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.surface,
+    position: "relative",
   },
 
   cardHeader: {
     marginBottom: 12,
+    paddingRight: 48,
   },
 
   cardTitleBlock: {
@@ -512,17 +521,22 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   cardActions: {
-    marginTop: 14,
-    alignItems: "flex-end",
+    position: "absolute",
+    top: theme.spacing.md,
+    right: theme.spacing.md,
   },
   deleteButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: "#fee2e2",
+    width: 38,
+    height: 38,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.surfaceSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: "center",
+    justifyContent: "center",
   },
   deleteButtonText: {
-    color: "#b91c1c",
+    color: theme.colors.danger,
     fontSize: 13,
     fontWeight: "700",
   },
