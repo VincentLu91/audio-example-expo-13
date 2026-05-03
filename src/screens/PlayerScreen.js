@@ -106,7 +106,7 @@ export default function PlayerScreen({ route, navigation }) {
   }, []);
 
   useEffect(() => {
-    const unregisterPlaybackHandlers = registerPlaybackHandlers({
+    registerPlaybackHandlers({
       stop: async () => {
         player.pause();
         player.setActiveForLockScreen(false);
@@ -137,8 +137,6 @@ export default function PlayerScreen({ route, navigation }) {
         await player.seekTo(value);
       },
     });
-
-    return unregisterPlaybackHandlers;
   }, [player, recording]);
 
   useEffect(() => {
