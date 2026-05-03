@@ -11,6 +11,7 @@ import * as Clipboard from "expo-clipboard";
 
 import Screen from "../components/Screen";
 import { ROUTES } from "../constants/routes";
+import { theme } from "../theme/theme";
 import { supabase } from "../../lib/supabase";
 import {
   getPlaybackState,
@@ -20,7 +21,6 @@ import {
   setActivePlaybackStatus,
 } from "../services/playbackControlService";
 import { MicTranscriptionService } from "../services/micTranscriptionService";
-import { theme } from "../theme/theme";
 
 const sharedPlaybackPlayer = createAudioPlayer(null);
 let loadedPlaybackSource = null;
@@ -36,28 +36,17 @@ function formatTime(seconds) {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-function PlayerButton({ label, iconName, onPress, variant = "secondary" }) {
-  const isPrimary = variant === "primary";
-
+function IconControlButton({ iconName, onPress, primary = false }) {
   return (
     <Pressable
+      style={[styles.controlButton, primary && styles.controlButtonPrimary]}
       onPress={onPress}
-      accessibilityLabel={label}
-      style={({ pressed }) => [
-        styles.playerButton,
-        isPrimary && styles.playerButtonPrimary,
-        pressed && styles.playerButtonPressed,
-      ]}
     >
-      {iconName ? (
-        <Ionicons
-          name={iconName}
-          size={isPrimary ? 34 : 22}
-          color={isPrimary ? theme.colors.primary : theme.colors.textPrimary}
-        />
-      ) : (
-        <Text style={styles.playerButtonText}>{label}</Text>
-      )}
+      <Ionicons
+        name={iconName}
+        size={primary ? 34 : 24}
+        color={theme.colors.textPrimary}
+      />
     </Pressable>
   );
 }
@@ -70,19 +59,29 @@ export default function PlayerScreen({ route, navigation }) {
         .from("recreate-ai-storage-bucket")
         .getPublicUrl(recording.original_file_name).data.publicUrl
     : "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
-  const source = audioSource;
+
   const player = sharedPlaybackPlayer;
   const status = useAudioPlayerStatus(player);
 
-  useEffect(() => {
-    if (!source) return;
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekValue, setSeekValue] = useState(0);
+  const [transcriptCopied, setTranscriptCopied] = useState(false);
 
-    if (loadedPlaybackSource !== source) {
+  const transcriptCopyTimeoutRef = useRef(null);
+
+  const duration = status.duration || 0;
+  const currentTime = isSeeking ? seekValue : status.currentTime || 0;
+  const transcriptText = recording?.full_transcript?.trim() || "";
+
+  useEffect(() => {
+    if (!audioSource) return;
+
+    if (loadedPlaybackSource !== audioSource) {
       player.pause();
-      player.replace(source);
-      loadedPlaybackSource = source;
+      player.replace(audioSource);
+      loadedPlaybackSource = audioSource;
     }
-  }, [source, player]);
+  }, [audioSource, player]);
 
   useEffect(() => {
     if (recording) {
@@ -107,7 +106,7 @@ export default function PlayerScreen({ route, navigation }) {
   }, []);
 
   useEffect(() => {
-    registerPlaybackHandlers({
+    const unregisterPlaybackHandlers = registerPlaybackHandlers({
       stop: async () => {
         player.pause();
         player.setActiveForLockScreen(false);
@@ -138,6 +137,8 @@ export default function PlayerScreen({ route, navigation }) {
         await player.seekTo(value);
       },
     });
+
+    return unregisterPlaybackHandlers;
   }, [player, recording]);
 
   useEffect(() => {
@@ -147,15 +148,6 @@ export default function PlayerScreen({ route, navigation }) {
       }
     };
   }, []);
-
-  const [isSeeking, setIsSeeking] = useState(false);
-  const [seekValue, setSeekValue] = useState(0);
-  const [transcriptCopied, setTranscriptCopied] = useState(false);
-  const transcriptCopyTimeoutRef = useRef(null);
-
-  const duration = status.duration || 0;
-  const currentTime = isSeeking ? seekValue : status.currentTime || 0;
-  const transcriptText = recording?.full_transcript?.trim() || "";
 
   async function stopMicRecordingBeforePlayback() {
     const micState = MicTranscriptionService.getState();
@@ -168,10 +160,40 @@ export default function PlayerScreen({ route, navigation }) {
     }
   }
 
-  async function copyTranscriptToClipboard() {
-    if (!transcriptText) {
+  async function handlePlayPause() {
+    if (status.playing) {
+      player.pause();
+      player.setActiveForLockScreen(false);
+      setActivePlaybackIsPlaying(false);
       return;
     }
+
+    await stopMicRecordingBeforePlayback();
+
+    player.setActiveForLockScreen(true, {
+      title: recording?.file_name || "Recording",
+      artist: "Audio App",
+    });
+
+    player.play();
+    setActivePlaybackIsPlaying(true);
+  }
+
+  async function restartPlayback() {
+    await stopMicRecordingBeforePlayback();
+    await player.seekTo(0);
+
+    player.setActiveForLockScreen(true, {
+      title: recording?.file_name || "Recording",
+      artist: "Audio App",
+    });
+
+    player.play();
+    setActivePlaybackIsPlaying(true);
+  }
+
+  async function copyTranscriptToClipboard() {
+    if (!transcriptText) return;
 
     await Clipboard.setStringAsync(transcriptText);
     setTranscriptCopied(true);
@@ -192,144 +214,119 @@ export default function PlayerScreen({ route, navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.playerCard}>
-          <Text style={styles.title}>Audio Player</Text>
-          {recording && (
-            <>
-              <Text>Selected recording:</Text>
-              <Text>{recording.file_name || "Untitled recording"}</Text>
-              <Text>Type: {recording.recordingType}</Text>
-            </>
-          )}
+        <View style={styles.playerShell}>
+          <View style={styles.transcriptFrame}>
+            <View style={styles.transcriptHeader}>
+              <Text style={styles.transcriptHeaderTitle}>Transcript</Text>
 
-          <Text style={styles.statusText}>
-            Status: {status.playing ? "Playing" : "Paused"}
+              {transcriptText ? (
+                <Pressable
+                  style={styles.copyButton}
+                  onPress={copyTranscriptToClipboard}
+                >
+                  <Ionicons
+                    name="copy-outline"
+                    size={14}
+                    color={theme.colors.textPrimary}
+                  />
+                  <Text style={styles.copyButtonText}>
+                    {transcriptCopied ? "Copied" : "Copy"}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+
+            <ScrollView
+              style={styles.transcriptScroll}
+              contentContainerStyle={styles.transcriptScrollContent}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
+              <Text
+                style={[
+                  styles.transcriptText,
+                  !transcriptText && styles.transcriptEmptyText,
+                ]}
+              >
+                {transcriptText || "No transcript found for this recording."}
+              </Text>
+            </ScrollView>
+          </View>
+
+          <Text style={styles.trackTitle}>
+            {recording?.file_name || "Audio Player"}
           </Text>
 
-          <View style={styles.timeRow}>
-            <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-            <Text style={styles.timeText}>{formatTime(duration)}</Text>
-          </View>
-
-          <Slider
-            style={styles.slider}
-            minimumValue={0}
-            maximumValue={duration || 1}
-            value={Math.min(currentTime, duration || 1)}
-            minimumTrackTintColor="#4f46e5"
-            maximumTrackTintColor="#d1d5db"
-            thumbTintColor="#4f46e5"
-            disabled={!duration}
-            onSlidingStart={() => {
-              setIsSeeking(true);
-              setSeekValue(status.currentTime || 0);
-            }}
-            onValueChange={(value) => {
-              setSeekValue(value);
-            }}
-            onSlidingComplete={async (value) => {
-              setSeekValue(value);
-              await player.seekTo(value);
-
-              setTimeout(() => {
-                setIsSeeking(false);
-              }, 200);
-            }}
-          />
+          <Text style={styles.artistText}>
+            {recording?.recordingType === "call"
+              ? "Phone recording"
+              : "Mic recording"}
+          </Text>
 
           <View style={styles.controlsRow}>
-            <PlayerButton
-              iconName={status.playing ? "pause-circle" : "play-circle"}
-              onPress={async () => {
-                if (status.playing) {
-                  player.pause();
-                  player.setActiveForLockScreen(false);
-                } else {
-                  await stopMicRecordingBeforePlayback();
+            <IconControlButton iconName="refresh" onPress={restartPlayback} />
 
-                  player.setActiveForLockScreen(true, {
-                    title: recording?.file_name || "Recording",
-                    artist: "Audio App",
-                  });
-
-                  player.play();
-                }
-              }}
-            />
-
-            <PlayerButton
-              iconName="refresh"
-              onPress={async () => {
-                await stopMicRecordingBeforePlayback();
-
-                await player.seekTo(0);
-                player.setActiveForLockScreen(true, {
-                  title: recording?.file_name || "Recording",
-                  artist: "Audio App",
-                });
-                player.play();
-              }}
-            />
-          </View>
-
-          <View style={styles.controlsRow}>
-            <PlayerButton
-              iconName="play-back"
+            <IconControlButton
+              iconName="play-skip-back"
               onPress={async () => {
                 await player.seekTo(Math.max(currentTime - 10, 0));
               }}
             />
 
-            <PlayerButton
-              iconName="play-forward"
+            <IconControlButton
+              iconName={status.playing ? "pause" : "play"}
+              primary
+              onPress={handlePlayPause}
+            />
+
+            <IconControlButton
+              iconName="play-skip-forward"
               onPress={async () => {
                 await player.seekTo(Math.min(currentTime + 10, duration));
               }}
             />
-          </View>
-        </View>
-        {recording ? (
-          <Pressable
-            style={styles.chatButton}
-            onPress={() =>
-              navigation.navigate(ROUTES.CHATBOT, {
-                recording,
-              })
-            }
-          >
-            <Text style={styles.chatButtonText}>Chat with AI</Text>
-          </Pressable>
-        ) : null}
-        <View style={styles.transcriptCard}>
-          <View style={styles.transcriptHeaderRow}>
-            <Text style={styles.transcriptTitle}>Transcript</Text>
 
-            {transcriptText ? (
-              <Pressable
-                onPress={copyTranscriptToClipboard}
-                hitSlop={8}
-                style={styles.copyButton}
-              >
-                <Text style={styles.copyButtonText}>
-                  {transcriptCopied ? "Copied" : "Copy"}
-                </Text>
-              </Pressable>
-            ) : null}
+            <IconControlButton
+              iconName="chatbubble-ellipses-outline"
+              onPress={() =>
+                navigation.navigate(ROUTES.CHATBOT, {
+                  recording,
+                })
+              }
+            />
           </View>
 
-          {transcriptText ? (
-            <ScrollView
-              style={styles.transcriptScroll}
-              nestedScrollEnabled
-              showsVerticalScrollIndicator
-            >
-              <Text style={styles.transcriptText}>{transcriptText}</Text>
-            </ScrollView>
-          ) : (
-            <Text style={styles.emptyTranscriptText}>
-              No transcript found for this recording.
-            </Text>
-          )}
+          <View style={styles.progressSection}>
+            <View style={styles.timeRow}>
+              <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+              <Text style={styles.timeText}>{formatTime(duration)}</Text>
+            </View>
+
+            <Slider
+              style={styles.slider}
+              minimumValue={0}
+              maximumValue={duration || 1}
+              value={currentTime}
+              minimumTrackTintColor={theme.colors.purpleSoft}
+              maximumTrackTintColor={theme.colors.surfaceMuted}
+              thumbTintColor={theme.colors.textPrimary}
+              onSlidingStart={() => {
+                setIsSeeking(true);
+                setSeekValue(status.currentTime || 0);
+              }}
+              onValueChange={(value) => {
+                setSeekValue(value);
+              }}
+              onSlidingComplete={async (value) => {
+                setSeekValue(value);
+                await player.seekTo(value);
+
+                setTimeout(() => {
+                  setIsSeeking(false);
+                }, 200);
+              }}
+            />
+          </View>
         </View>
       </ScrollView>
     </Screen>
@@ -337,131 +334,148 @@ export default function PlayerScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  title: {
-    color: "white",
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 16,
-  },
-
-  timeRow: {
-    width: "100%",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 16,
-    marginBottom: 6,
-  },
-
-  slider: {
-    width: "100%",
-    height: 40,
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  controlsRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 12,
-  },
-
-  playerButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: "#4f46e5",
-    alignItems: "center",
-  },
-
-  playerButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  playerCard: {
-    width: "100%",
-    padding: 20,
-    borderRadius: 20,
-    backgroundColor: "#111827",
-    borderWidth: 1,
-    borderColor: "#374151",
-    gap: 8,
-  },
-  statusText: {
-    color: "#d1d5db",
-    fontSize: 16,
-  },
-
-  timeText: {
-    color: "#f9fafb",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  transcriptCard: {
-    width: "100%",
-    marginTop: 20,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: "#111827",
-    borderWidth: 1,
-    borderColor: "#374151",
-  },
-  transcriptTitle: {
-    color: "white",
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  transcriptScroll: {
-    maxHeight: 260,
-  },
-  transcriptText: {
-    color: "#e5e7eb",
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  emptyTranscriptText: {
-    color: "#9ca3af",
-    fontSize: 15,
-  },
   scroll: {
     flex: 1,
     width: "100%",
   },
+
   scrollContent: {
-    paddingBottom: 24,
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingBottom: theme.spacing.lg,
   },
-  chatButton: {
+
+  playerShell: {
     width: "100%",
-    marginTop: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    backgroundColor: "#2563eb",
+    borderRadius: 32,
+    paddingVertical: 28,
+    paddingHorizontal: 22,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     alignItems: "center",
   },
-  chatButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "700",
+
+  transcriptFrame: {
+    width: "100%",
+    height: 320,
+    borderRadius: 24,
+    padding: 16,
+    backgroundColor: theme.colors.surfaceSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginBottom: 28,
   },
-  transcriptHeaderRow: {
+
+  transcriptHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
     marginBottom: 12,
   },
 
+  transcriptHeaderTitle: {
+    ...theme.typography.sectionTitle,
+    color: theme.colors.textPrimary,
+  },
+
   copyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: "#f3f4f6",
+    paddingVertical: 6,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
 
   copyButtonText: {
     fontSize: 12,
-    fontWeight: "700",
-    color: "#374151",
+    fontWeight: "800",
+    color: theme.colors.textPrimary,
+  },
+
+  transcriptScroll: {
+    flex: 1,
+    width: "100%",
+  },
+
+  transcriptScrollContent: {
+    paddingBottom: 8,
+  },
+
+  transcriptText: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: theme.colors.textPrimary,
+    textAlign: "center",
+  },
+
+  transcriptEmptyText: {
+    color: theme.colors.textMuted,
+  },
+
+  trackTitle: {
+    ...theme.typography.title,
+    color: theme.colors.textPrimary,
+    textAlign: "center",
+    marginBottom: 6,
+  },
+
+  artistText: {
+    fontSize: 18,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    marginBottom: 28,
+  },
+
+  controlsRow: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 28,
+  },
+
+  controlButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+  },
+
+  controlButtonPrimary: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    backgroundColor: theme.colors.primarySoft,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+
+  progressSection: {
+    width: "100%",
+  },
+
+  timeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+
+  timeText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.textSecondary,
+  },
+
+  slider: {
+    width: "100%",
+    height: 36,
   },
 });
