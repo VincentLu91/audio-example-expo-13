@@ -24,6 +24,7 @@ import {
   seekActivePlayback,
 } from "../services/playbackControlService";
 import { theme } from "../theme/theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function formatDuration(duration) {
   if (duration === null || duration === undefined || duration === "") {
@@ -120,6 +121,9 @@ function formatMiniPlayerTime(seconds) {
 }
 
 export default function HomeScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
+  const bottomChromeOffset = Math.max(insets.bottom, 12) + 76 + 8;
+
   const [recordings, setRecordings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -389,7 +393,7 @@ export default function HomeScreen({ navigation }) {
         />
       )}
       {playbackState.activeRecording ? (
-        <View style={styles.miniPlayer}>
+        <View style={[styles.miniPlayer, { marginBottom: bottomChromeOffset }]}>
           <View style={styles.miniPlayerTextBlock}>
             <Text style={styles.miniPlayerLabel}>
               {playbackState.isPlaying ? "Now playing" : "Paused"}
@@ -584,7 +588,7 @@ const styles = StyleSheet.create({
   miniPlayer: {
     width: "100%",
     padding: theme.spacing.md,
-    marginBottom: 0,
+    marginBottom: 104,
     borderRadius: theme.radius.lg,
     borderWidth: 1,
     borderColor: theme.colors.border,
