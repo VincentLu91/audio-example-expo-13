@@ -18,7 +18,12 @@ const HomeStack = createNativeStackNavigator();
 const HOME_STACK_HOME = "HomeStackHome";
 
 function TabBarBackground() {
-  return <View pointerEvents="none" style={styles.tabBarBackground} />;
+  return (
+    <View pointerEvents="none" style={styles.tabBarBackgroundRoot}>
+      <View style={styles.tabBarScrim} />
+      <View style={styles.tabBarBackground} />
+    </View>
+  );
 }
 
 function HomeStackNavigator() {
@@ -117,5 +122,21 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: 28,
     overflow: "hidden",
+  },
+  tabBarBackgroundRoot: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+
+  tabBarScrim: {
+    position: "absolute",
+    left: -16,
+    right: -16,
+    top: 0,
+    bottom: -48,
+    backgroundColor: "rgba(32, 32, 51, 0.72)",
   },
 });
