@@ -9,4 +9,5 @@ export const ROUTES = {
   MIC_RECORDING: "MicRecording",
   ACCOUNT: "Account",
   CHATBOT: "ChatBot",
+  EDIT_RECORDING: "EditRecording",
 };

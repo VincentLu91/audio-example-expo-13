@@ -10,6 +10,7 @@ import MicRecordingScreen from "../screens/MicRecordingScreen";
 import PhoneRecordingScreen from "../screens/PhoneRecordingScreen";
 import AccountScreen from "../screens/AccountScreen";
 import PlayerScreen from "../screens/PlayerScreen";
+import EditRecordingScreen from "../screens/EditRecordingScreen";
 import { theme } from "../theme/theme";
 
 const Tab = createBottomTabNavigator();
@@ -31,6 +32,10 @@ function HomeStackNavigator() {
     <HomeStack.Navigator screenOptions={{ headerShown: false }}>
       <HomeStack.Screen name={HOME_STACK_HOME} component={HomeScreen} />
       <HomeStack.Screen name={ROUTES.PLAYER} component={PlayerScreen} />
+      <HomeStack.Screen
+        name={ROUTES.EDIT_RECORDING}
+        component={EditRecordingScreen}
+      />
     </HomeStack.Navigator>
   );
 }

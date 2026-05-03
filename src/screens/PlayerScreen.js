@@ -217,21 +217,39 @@ export default function PlayerScreen({ route, navigation }) {
             <View style={styles.transcriptHeader}>
               <Text style={styles.transcriptHeaderTitle}>Transcript</Text>
 
-              {transcriptText ? (
+              <View style={styles.transcriptActions}>
                 <Pressable
                   style={styles.copyButton}
-                  onPress={copyTranscriptToClipboard}
+                  onPress={() =>
+                    navigation.navigate(ROUTES.EDIT_RECORDING, {
+                      recording,
+                    })
+                  }
                 >
                   <Ionicons
-                    name="copy-outline"
+                    name="create-outline"
                     size={14}
                     color={theme.colors.textPrimary}
                   />
-                  <Text style={styles.copyButtonText}>
-                    {transcriptCopied ? "Copied" : "Copy"}
-                  </Text>
+                  <Text style={styles.copyButtonText}>Edit</Text>
                 </Pressable>
-              ) : null}
+
+                {transcriptText ? (
+                  <Pressable
+                    style={styles.copyButton}
+                    onPress={copyTranscriptToClipboard}
+                  >
+                    <Ionicons
+                      name="copy-outline"
+                      size={14}
+                      color={theme.colors.textPrimary}
+                    />
+                    <Text style={styles.copyButtonText}>
+                      {transcriptCopied ? "Copied" : "Copy"}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
             </View>
 
             <ScrollView
@@ -387,6 +405,12 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
+  },
+
+  transcriptActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
 
   copyButtonText: {
