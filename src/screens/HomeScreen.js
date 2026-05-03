@@ -25,6 +25,8 @@ import {
 import { theme } from "../theme/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+const FLOATING_MINI_PLAYER_RESERVED_HEIGHT = 120;
+
 function formatDuration(duration) {
   if (duration === null || duration === undefined || duration === "") {
     return "Unknown duration";
@@ -121,6 +123,10 @@ export default function HomeScreen({ navigation }) {
     activeRecording: null,
     isPlaying: false,
   });
+
+  const listBottomPadding = playbackState.activeRecording
+    ? bottomChromeOffset + FLOATING_MINI_PLAYER_RESERVED_HEIGHT
+    : 24;
 
   useEffect(() => {
     return subscribeToPlaybackState(setPlaybackState);
@@ -377,7 +383,10 @@ export default function HomeScreen({ navigation }) {
           data={filteredRecordings}
           keyExtractor={(item) => `${item.recordingType}-${item.id}`}
           renderItem={renderRecording}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[
+            styles.list,
+            { paddingBottom: listBottomPadding },
+          ]}
         />
       )}
       {playbackState.activeRecording ? (
@@ -418,7 +427,6 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "stretch",
     gap: 12,
-    paddingBottom: 24,
   },
   card: {
     width: "100%",
