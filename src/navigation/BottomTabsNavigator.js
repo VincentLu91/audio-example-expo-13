@@ -115,11 +115,14 @@ const styles = StyleSheet.create({
   },
   tabBarBackground: {
     position: "absolute",
-    left: 0,
-    right: 0,
+    left: 16,
+    right: 16,
     top: 0,
     backgroundColor: theme.colors.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    overflow: "hidden",
   },
 });
