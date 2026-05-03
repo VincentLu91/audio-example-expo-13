@@ -20,6 +20,7 @@ import Screen from "../components/Screen";
 import { supabase } from "../../lib/supabase";
 import { stopActivePlayback } from "../services/playbackControlService";
 import { MicTranscriptionService } from "../services/micTranscriptionService";
+import { theme } from "../theme/theme";
 
 const API_KEY = process.env.EXPO_PUBLIC_ASSEMBLYAI_API_KEY;
 const SAMPLE_RATE = 16000;
@@ -35,6 +36,7 @@ export default function MicRecordingScreen({ navigation }) {
   const [micTokensAvailable, setMicTokensAvailable] = useState(null);
   const [transcriptCopied, setTranscriptCopied] = useState(false);
   const transcriptCopyTimeoutRef = useRef(null);
+  const scrollViewRef = useRef(null);
 
   useEffect(() => {
     return MicTranscriptionService.subscribe((nextState) => {
@@ -348,7 +350,11 @@ export default function MicRecordingScreen({ navigation }) {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
           <Text style={styles.title}>Mic Recording</Text>
 
           <Text style={styles.subtitle}>
@@ -359,7 +365,7 @@ export default function MicRecordingScreen({ navigation }) {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Recording status</Text>
             <Text style={styles.statusText}>{recordingStatus}</Text>
-            <Text>
+            <Text style={styles.statusDetailText}>
               Mic seconds left:{" "}
               {typeof micTokensAvailable === "number"
                 ? micTokensAvailable
@@ -402,7 +408,17 @@ export default function MicRecordingScreen({ navigation }) {
                 MicTranscriptionService.setRecordingName(text);
               }}
               placeholder="Example: Team meeting notes"
+              placeholderTextColor={theme.colors.textMuted}
               autoCapitalize="sentences"
+              onFocus={() => {
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }, 250);
+
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }, 650);
+              }}
             />
           </View>
 
@@ -454,89 +470,114 @@ export default function MicRecordingScreen({ navigation }) {
 const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
+    backgroundColor: theme.colors.background,
   },
+
   container: {
     padding: 24,
     gap: 16,
     paddingBottom: 40,
   },
+
   title: {
     fontSize: 28,
     fontWeight: "700",
+    color: theme.colors.textPrimary,
   },
+
   subtitle: {
     fontSize: 16,
-    color: "#4b5563",
+    color: theme.colors.textSecondary,
     lineHeight: 22,
   },
+
   card: {
     padding: 16,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: theme.colors.border,
     borderRadius: 14,
-    backgroundColor: "white",
+    backgroundColor: theme.colors.surface,
     gap: 10,
   },
+
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
+    color: theme.colors.textPrimary,
   },
+
   statusText: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111827",
+    color: theme.colors.textPrimary,
   },
+
+  statusDetailText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+
   transcriptBox: {
     minHeight: 140,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: theme.colors.border,
     borderRadius: 12,
     padding: 12,
-    backgroundColor: "#f9fafb",
+    backgroundColor: theme.colors.surfaceSoft,
   },
+
   transcriptText: {
     fontSize: 14,
-    color: "#4b5563",
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
+
   primaryButton: {
-    backgroundColor: "#111827",
+    backgroundColor: theme.colors.primary,
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 12,
     alignItems: "center",
   },
+
   primaryButtonText: {
-    color: "white",
+    color: theme.colors.textPrimary,
     fontSize: 16,
     fontWeight: "700",
   },
+
   secondaryButton: {
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 12,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surfaceSoft,
   },
+
   secondaryButtonText: {
-    color: "#111827",
+    color: theme.colors.textPrimary,
     fontSize: 16,
     fontWeight: "600",
   },
+
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: theme.colors.border,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 12,
     fontSize: 16,
-    backgroundColor: "#f9fafb",
-    color: "#111827",
+    backgroundColor: theme.colors.surfaceSoft,
+    color: theme.colors.textPrimary,
   },
+
   disabledButton: {
     opacity: 0.5,
   },
+
   cardHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -548,12 +589,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: theme.colors.surfaceSoft,
   },
 
   copyButtonText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#374151",
+    color: theme.colors.textPrimary,
   },
 });
