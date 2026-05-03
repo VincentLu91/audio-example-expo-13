@@ -23,6 +23,7 @@ import {
   toggleActivePlayback,
   seekActivePlayback,
 } from "../services/playbackControlService";
+import { theme } from "../theme/theme";
 
 function formatDuration(duration) {
   if (duration === null || duration === undefined || duration === "") {
@@ -465,12 +466,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "700",
+    ...theme.typography.title,
+    color: theme.colors.textPrimary,
   },
   refreshText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
+    color: theme.colors.purpleSoft,
   },
   list: {
     width: "100%",
@@ -480,11 +482,11 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "100%",
-    padding: 16,
+    padding: theme.spacing.md,
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 14,
-    backgroundColor: "white",
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surface,
   },
 
   cardHeader: {
@@ -497,28 +499,29 @@ const styles = StyleSheet.create({
 
   recordingTitle: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
 
   recordingDate: {
     fontSize: 13,
-    color: "#666",
+    color: theme.colors.textMuted,
   },
 
   typeBadge: {
     alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: "#f3f4f6",
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.surfaceSoft,
     marginTop: 8,
   },
 
   typeBadgeText: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#374151",
+    fontWeight: "700",
+    color: theme.colors.purpleSoft,
   },
 
   metaRow: {
@@ -530,7 +533,7 @@ const styles = StyleSheet.create({
 
   recordingMeta: {
     fontSize: 14,
-    color: "#444",
+    color: theme.colors.textSecondary,
   },
 
   transcriptStatus: {
@@ -539,11 +542,11 @@ const styles = StyleSheet.create({
   },
 
   transcriptReady: {
-    color: "#047857",
+    color: theme.colors.success,
   },
 
   transcriptMissing: {
-    color: "#9ca3af",
+    color: theme.colors.textMuted,
   },
   errorText: {
     color: "red",
@@ -551,13 +554,14 @@ const styles = StyleSheet.create({
 
   searchInput: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 12,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
     paddingVertical: 12,
     paddingHorizontal: 14,
     fontSize: 16,
-    marginBottom: 16,
-    backgroundColor: "white",
+    marginBottom: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    color: theme.colors.textPrimary,
   },
   cardActions: {
     marginTop: 14,
@@ -579,16 +583,16 @@ const styles = StyleSheet.create({
   },
   miniPlayer: {
     width: "100%",
-    padding: 12,
+    padding: theme.spacing.md,
     marginBottom: 0,
-    borderRadius: 14,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: "#d1d5db",
-    backgroundColor: "white",
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surfaceSoft,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
+    gap: theme.spacing.sm,
   },
 
   miniPlayerTextBlock: {
@@ -597,15 +601,15 @@ const styles = StyleSheet.create({
 
   miniPlayerLabel: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#6b7280",
+    fontWeight: "700",
+    color: theme.colors.purpleSoft,
     marginBottom: 2,
   },
 
   miniPlayerTitle: {
     fontSize: 14,
-    fontWeight: "700",
-    color: "#111827",
+    fontWeight: "800",
+    color: theme.colors.textPrimary,
   },
 
   miniPlayerActions: {
@@ -617,27 +621,27 @@ const styles = StyleSheet.create({
   miniPlayerButton: {
     paddingVertical: 8,
     paddingHorizontal: 10,
-    borderRadius: 10,
-    backgroundColor: "#111827",
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.primary,
   },
 
   miniPlayerButtonText: {
-    color: "white",
+    color: theme.colors.white,
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "800",
   },
 
   miniPlayerStopButton: {
     paddingVertical: 8,
     paddingHorizontal: 10,
-    borderRadius: 10,
-    backgroundColor: "#f3f4f6",
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surfaceMuted,
   },
 
   miniPlayerStopButtonText: {
-    color: "#374151",
+    color: theme.colors.textSecondary,
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "800",
   },
   miniPlayerSlider: {
     width: "100%",
@@ -645,18 +649,18 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   miniPlayerIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#2563eb",
+    width: 42,
+    height: 42,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   miniPlayerStopIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#f3f4f6",
+    width: 42,
+    height: 42,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.white,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -667,6 +671,6 @@ const styles = StyleSheet.create({
 
   miniPlayerTimeText: {
     fontSize: 11,
-    color: "#6b7280",
+    color: theme.colors.textMuted,
   },
 });

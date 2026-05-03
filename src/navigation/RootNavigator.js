@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import { ROUTES } from "../constants/routes";
@@ -10,8 +10,23 @@ import LiveTranscriptionScreen from "../screens/LiveTranscriptionScreen";
 import ChatBotScreen from "../screens/ChatBotScreen";
 import BottomTabsNavigator from "./BottomTabsNavigator";
 import { supabase } from "../../lib/supabase";
+import { theme } from "../theme/theme";
 
 const Stack = createNativeStackNavigator();
+
+const navigationTheme = {
+  ...DefaultTheme,
+  dark: true,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: theme.colors.purpleSoft,
+    background: theme.colors.background,
+    card: theme.colors.background,
+    text: theme.colors.textPrimary,
+    border: theme.colors.border,
+    notification: theme.colors.purpleSoft,
+  },
+};
 
 export default function RootNavigator() {
   const [session, setSession] = useState(null);
@@ -49,7 +64,7 @@ export default function RootNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {session ? (
           <>

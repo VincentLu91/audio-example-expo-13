@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ROUTES } from "../constants/routes";
 import HomeScreen from "../screens/HomeScreen";
@@ -8,11 +10,28 @@ import MicRecordingScreen from "../screens/MicRecordingScreen";
 import PhoneRecordingScreen from "../screens/PhoneRecordingScreen";
 import AccountScreen from "../screens/AccountScreen";
 import PlayerScreen from "../screens/PlayerScreen";
+import { theme } from "../theme/theme";
 
 const Tab = createBottomTabNavigator();
 
 const HomeStack = createNativeStackNavigator();
 const HOME_STACK_HOME = "HomeStackHome";
+
+function TabBarBackground() {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        styles.tabBarBackground,
+        {
+          bottom: insets.bottom,
+        },
+      ]}
+    />
+  );
+}
 
 function HomeStackNavigator() {
   return (
@@ -50,6 +69,10 @@ export default function BottomTabsNavigator() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarActiveTintColor: theme.colors.purpleSoft,
+        tabBarInactiveTintColor: theme.colors.textMuted,
+        tabBarStyle: styles.tabBar,
+        tabBarBackground: () => <TabBarBackground />,
         tabBarIcon: ({ focused, color, size }) =>
           getTabIcon(route.name, focused, color, size),
       })}
@@ -80,3 +103,23 @@ export default function BottomTabsNavigator() {
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: "transparent",
+    borderTopWidth: 0,
+    borderTopColor: "transparent",
+    elevation: 0,
+    shadowOpacity: 0,
+    shadowColor: "transparent",
+  },
+  tabBarBackground: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+  },
+});
