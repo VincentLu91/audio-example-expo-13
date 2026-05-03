@@ -15,6 +15,7 @@ import Slider from "@react-native-community/slider";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import Screen from "../components/Screen";
+import FloatingMiniPlayer from "../components/FloatingMiniPlayer";
 import { ROUTES } from "../constants/routes";
 import { supabase } from "../../lib/supabase";
 import {
@@ -393,70 +394,18 @@ export default function HomeScreen({ navigation }) {
         />
       )}
       {playbackState.activeRecording ? (
-        <View style={[styles.miniPlayer, { marginBottom: bottomChromeOffset }]}>
-          <View style={styles.miniPlayerTextBlock}>
-            <Text style={styles.miniPlayerLabel}>
-              {playbackState.isPlaying ? "Now playing" : "Paused"}
-            </Text>
-
-            <Text style={styles.miniPlayerTitle} numberOfLines={1}>
-              {playbackState.activeRecording.file_name ||
-                playbackState.activeRecording.original_file_name ||
-                "Untitled recording"}
-            </Text>
-            <Slider
-              style={styles.miniPlayerSlider}
-              minimumValue={0}
-              maximumValue={playbackState.duration || 0}
-              value={playbackState.currentTime || 0}
-              disabled={!playbackState.duration}
-              onSlidingComplete={seekActivePlayback}
-              minimumTrackTintColor="#2563eb"
-              maximumTrackTintColor="#d1d5db"
-              thumbTintColor="#2563eb"
-            />
-            <View style={styles.miniPlayerTimeRow}>
-              <Text style={styles.miniPlayerTimeText}>
-                {formatMiniPlayerTime(playbackState.currentTime)}
-              </Text>
-
-              <Text style={styles.miniPlayerTimeText}>
-                {formatMiniPlayerTime(playbackState.duration)}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.miniPlayerActions}>
-            <Pressable
-              style={styles.miniPlayerIconButton}
-              onPress={toggleActivePlayback}
-            >
-              <Ionicons
-                name={playbackState.isPlaying ? "pause" : "play"}
-                size={22}
-                color="white"
-              />
-            </Pressable>
-
-            <Pressable
-              style={styles.miniPlayerButton}
-              onPress={() =>
-                navigation.navigate(ROUTES.PLAYER, {
-                  recording: playbackState.activeRecording,
-                })
-              }
-            >
-              <Text style={styles.miniPlayerButtonText}>Open</Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.miniPlayerStopIconButton}
-              onPress={stopActivePlayback}
-            >
-              <Ionicons name="stop" size={20} color="#374151" />
-            </Pressable>
-          </View>
-        </View>
+        <FloatingMiniPlayer
+          playbackState={playbackState}
+          bottomOffset={bottomChromeOffset}
+          onTogglePlayback={toggleActivePlayback}
+          onStopPlayback={stopActivePlayback}
+          onSeekPlayback={seekActivePlayback}
+          onOpenPlayer={() =>
+            navigation.navigate(ROUTES.PLAYER, {
+              recording: playbackState.activeRecording,
+            })
+          }
+        />
       ) : null}
     </Screen>
   );
