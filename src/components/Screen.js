@@ -4,7 +4,7 @@ import { theme } from "../theme/theme";
 
 export default function Screen({ children, contentStyle }) {
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
       <View style={[styles.content, contentStyle]}>{children}</View>
     </SafeAreaView>
   );
