@@ -20,6 +20,7 @@ import {
   setActivePlaybackStatus,
 } from "../services/playbackControlService";
 import { MicTranscriptionService } from "../services/micTranscriptionService";
+import { theme } from "../theme/theme";
 
 const sharedPlaybackPlayer = createAudioPlayer(null);
 let loadedPlaybackSource = null;
@@ -35,14 +36,24 @@ function formatTime(seconds) {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-function PlayerButton({ label, iconName, onPress }) {
+function PlayerButton({ label, iconName, onPress, variant = "secondary" }) {
+  const isPrimary = variant === "primary";
+
   return (
-    <Pressable style={styles.playerButton} onPress={onPress}>
+    <Pressable
+      onPress={onPress}
+      accessibilityLabel={label}
+      style={({ pressed }) => [
+        styles.playerButton,
+        isPrimary && styles.playerButtonPrimary,
+        pressed && styles.playerButtonPressed,
+      ]}
+    >
       {iconName ? (
         <Ionicons
           name={iconName}
-          size={iconName.includes("circle") ? 30 : 22}
-          color="white"
+          size={isPrimary ? 34 : 22}
+          color={isPrimary ? theme.colors.primary : theme.colors.textPrimary}
         />
       ) : (
         <Text style={styles.playerButtonText}>{label}</Text>

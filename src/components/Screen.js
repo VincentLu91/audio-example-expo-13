@@ -7,7 +7,7 @@ import { theme } from "../theme/theme";
 
 const TAB_BAR_HEIGHT = 76;
 const TAB_BAR_BOTTOM_GAP = 12;
-const TAB_BAR_CONTENT_GAP = 16;
+const TAB_BAR_CONTENT_GAP = 0;
 
 export default function Screen({ children, contentStyle }) {
   const insets = useSafeAreaInsets();
