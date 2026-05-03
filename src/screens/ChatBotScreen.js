@@ -168,7 +168,7 @@ export default function ChatBotScreen({ route }) {
     >
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View style={styles.header}>
           <Text style={styles.title}>Chat about this recording</Text>
@@ -262,6 +262,11 @@ export default function ChatBotScreen({ route }) {
                 onChangeText={setUserInput}
                 placeholder="Ask about this recording..."
                 multiline
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                  }, 300);
+                }}
               />
 
               <Pressable
@@ -288,119 +293,144 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#202033",
   },
+
   container: {
     flex: 1,
     width: "100%",
   },
+
   header: {
     marginBottom: 12,
   },
+
   title: {
     fontSize: 24,
     fontWeight: "700",
     marginBottom: 4,
+    color: "#F8F8FC",
   },
+
   subtitle: {
     fontSize: 14,
-    color: "#6b7280",
+    color: "#C9CAD8",
   },
+
   centerContent: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
+
   loadingText: {
-    color: "#6b7280",
+    color: "#C9CAD8",
   },
+
   errorText: {
-    color: "red",
+    color: "#EF4444",
     marginBottom: 12,
   },
+
   messagesScroll: {
     flex: 1,
     width: "100%",
   },
+
   messagesContent: {
     paddingBottom: 16,
     gap: 12,
   },
+
   promptContainer: {
     gap: 10,
     paddingVertical: 20,
   },
+
   promptPill: {
     alignSelf: "flex-start",
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: "rgba(255, 255, 255, 0.08)",
     borderRadius: 999,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    backgroundColor: "white",
+    backgroundColor: "#34364A",
   },
+
   promptPillText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#111827",
+    color: "#F8F8FC",
   },
+
   messageBubble: {
     maxWidth: "86%",
     borderRadius: 16,
     padding: 12,
   },
+
   userBubble: {
     alignSelf: "flex-end",
-    backgroundColor: "#dbeafe",
+    backgroundColor: "#3C36D9",
   },
+
   botBubble: {
     alignSelf: "flex-start",
-    backgroundColor: "white",
+    backgroundColor: "#2B2C3F",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "rgba(255, 255, 255, 0.08)",
   },
+
   senderText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#6b7280",
+    color: "#C9CAD8",
   },
+
   messageText: {
     fontSize: 15,
     lineHeight: 21,
-    color: "#111827",
+    color: "#F8F8FC",
   },
+
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
     gap: 8,
     paddingTop: 8,
   },
+
   input: {
     flex: 1,
     maxHeight: 110,
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: "rgba(255, 255, 255, 0.08)",
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    backgroundColor: "white",
+    color: "#F8F8FC",
+    backgroundColor: "#2B2C3F",
   },
+
   sendButton: {
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: "#2563eb",
+    backgroundColor: "#5C4DFF",
   },
+
   sendButtonText: {
-    color: "white",
+    color: "#F8F8FC",
     fontSize: 15,
     fontWeight: "700",
   },
+
   disabledButton: {
     opacity: 0.5,
   },
+
   messageHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -413,12 +443,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#34364A",
   },
 
   copyButtonText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#374151",
+    color: "#F8F8FC",
   },
 });
