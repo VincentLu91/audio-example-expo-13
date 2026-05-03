@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import Screen from "../components/Screen";
 import { supabase } from "../../lib/supabase";
+import { theme } from "../theme/theme";
 
 export default function AccountScreen() {
   const [signingOut, setSigningOut] = useState(false);
@@ -62,29 +63,34 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: 16,
   },
+
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#111827",
+    color: theme.colors.textPrimary,
   },
+
   description: {
     fontSize: 16,
     lineHeight: 22,
-    color: "#4b5563",
+    color: theme.colors.textSecondary,
   },
+
   button: {
     marginTop: 8,
-    backgroundColor: "#111827",
+    backgroundColor: theme.colors.primary,
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 12,
     alignItems: "center",
   },
+
   buttonDisabled: {
     opacity: 0.6,
   },
+
   buttonText: {
-    color: "white",
+    color: theme.colors.textPrimary,
     fontSize: 16,
     fontWeight: "600",
   },
