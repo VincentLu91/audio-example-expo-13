@@ -11,8 +11,6 @@ import {
 } from "react-native";
 import { useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import Slider from "@react-native-community/slider";
-import Ionicons from "@expo/vector-icons/Ionicons";
 
 import Screen from "../components/Screen";
 import FloatingMiniPlayer from "../components/FloatingMiniPlayer";
@@ -108,17 +106,6 @@ function getRecordingTypeLabel(recordingType) {
 
 function hasTranscript(recording) {
   return Boolean(recording?.full_transcript?.trim());
-}
-
-function formatMiniPlayerTime(seconds) {
-  if (!seconds || Number.isNaN(seconds)) {
-    return "0:00";
-  }
-
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
 export default function HomeScreen({ navigation }) {
@@ -533,97 +520,5 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
-  },
-  miniPlayer: {
-    width: "100%",
-    padding: theme.spacing.md,
-    marginBottom: 104,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surfaceSoft,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing.sm,
-  },
-
-  miniPlayerTextBlock: {
-    flex: 1,
-  },
-
-  miniPlayerLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.purpleSoft,
-    marginBottom: 2,
-  },
-
-  miniPlayerTitle: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: theme.colors.textPrimary,
-  },
-
-  miniPlayerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-
-  miniPlayerButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.primary,
-  },
-
-  miniPlayerButtonText: {
-    color: theme.colors.white,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-
-  miniPlayerStopButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.surfaceMuted,
-  },
-
-  miniPlayerStopButtonText: {
-    color: theme.colors.textSecondary,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  miniPlayerSlider: {
-    width: "100%",
-    height: 32,
-    marginTop: 4,
-  },
-  miniPlayerIconButton: {
-    width: 42,
-    height: 42,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  miniPlayerStopIconButton: {
-    width: 42,
-    height: 42,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.white,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  miniPlayerTimeRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  miniPlayerTimeText: {
-    fontSize: 11,
-    color: theme.colors.textMuted,
   },
 });
