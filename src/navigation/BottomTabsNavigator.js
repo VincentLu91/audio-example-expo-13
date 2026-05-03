@@ -18,19 +18,7 @@ const HomeStack = createNativeStackNavigator();
 const HOME_STACK_HOME = "HomeStackHome";
 
 function TabBarBackground() {
-  const insets = useSafeAreaInsets();
-
-  return (
-    <View
-      pointerEvents="none"
-      style={[
-        styles.tabBarBackground,
-        {
-          bottom: insets.bottom,
-        },
-      ]}
-    />
-  );
+  return <View pointerEvents="none" style={styles.tabBarBackground} />;
 }
 
 function HomeStackNavigator() {
@@ -65,13 +53,14 @@ function getTabIcon(routeName, focused, color, size) {
 }
 
 export default function BottomTabsNavigator() {
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: theme.colors.purpleSoft,
         tabBarInactiveTintColor: theme.colors.textMuted,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [styles.tabBar, { bottom: Math.max(insets.bottom, 12) }],
         tabBarBackground: () => <TabBarBackground />,
         tabBarIcon: ({ focused, color, size }) =>
           getTabIcon(route.name, focused, color, size),
@@ -106,6 +95,12 @@ export default function BottomTabsNavigator() {
 
 const styles = StyleSheet.create({
   tabBar: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    height: 76,
+    paddingTop: 8,
+    paddingBottom: 10,
     backgroundColor: "transparent",
     borderTopWidth: 0,
     borderTopColor: "transparent",
@@ -115,14 +110,12 @@ const styles = StyleSheet.create({
   },
   tabBarBackground: {
     position: "absolute",
-    left: 16,
-    right: 16,
+    left: 0,
+    right: 0,
     top: 0,
+    bottom: 0,
     backgroundColor: theme.colors.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    borderRadius: 28,
     overflow: "hidden",
   },
 });
