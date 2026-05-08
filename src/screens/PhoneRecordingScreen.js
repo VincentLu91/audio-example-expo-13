@@ -22,6 +22,7 @@ import { PhoneTranscriptionService } from "../services/phoneTranscriptionService
 import { MicTranscriptionService } from "../services/micTranscriptionService";
 import { supabase } from "../../lib/supabase";
 import { theme } from "../theme/theme";
+import LiveAskBox from "../components/LiveAskBox";
 
 function getCallSessionStatusLabel(status) {
   if (status === "call_start_requested") {
@@ -612,6 +613,8 @@ export default function PhoneRecordingScreen({ navigation }) {
               </Text>
             </View>
           </View>
+
+          <LiveAskBox transcriptText={liveTranscriptText} />
 
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Save recording</Text>
