@@ -21,6 +21,7 @@ import { supabase } from "../../lib/supabase";
 import { stopActivePlayback } from "../services/playbackControlService";
 import { MicTranscriptionService } from "../services/micTranscriptionService";
 import { theme } from "../theme/theme";
+import LiveAskBox from "../components/LiveAskBox";
 
 const API_KEY = process.env.EXPO_PUBLIC_ASSEMBLYAI_API_KEY;
 const SAMPLE_RATE = 16000;
@@ -396,6 +397,8 @@ export default function MicRecordingScreen({ navigation }) {
               </Text>
             </View>
           </View>
+
+          <LiveAskBox transcriptText={transcriptText} />
 
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Recording name</Text>
