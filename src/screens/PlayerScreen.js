@@ -293,147 +293,183 @@ export default function PlayerScreen({ route, navigation }) {
               </Text>
             </Pressable>
           </View>
-          <View style={styles.transcriptFrame}>
-            <View style={styles.transcriptHeader}>
-              <Text style={styles.transcriptHeaderTitle}>Transcript</Text>
+          {activePanel === "player" ? (
+            <>
+              <View style={styles.transcriptFrame}>
+                <View style={styles.transcriptHeader}>
+                  <Text style={styles.transcriptHeaderTitle}>Transcript</Text>
 
-              <View style={styles.transcriptActions}>
-                <Pressable
-                  style={styles.copyButton}
+                  <View style={styles.transcriptActions}>
+                    <Pressable
+                      style={styles.copyButton}
+                      onPress={() =>
+                        navigation.navigate(ROUTES.EDIT_RECORDING, {
+                          recording,
+                        })
+                      }
+                    >
+                      <Ionicons
+                        name="create-outline"
+                        size={14}
+                        color={theme.colors.textPrimary}
+                      />
+                      <Text style={styles.copyButtonText}>Edit</Text>
+                    </Pressable>
+
+                    {transcriptText ? (
+                      <Pressable
+                        style={styles.copyButton}
+                        onPress={copyTranscriptToClipboard}
+                      >
+                        <Ionicons
+                          name="copy-outline"
+                          size={14}
+                          color={theme.colors.textPrimary}
+                        />
+                        <Text style={styles.copyButtonText}>
+                          {transcriptCopied ? "Copied" : "Copy"}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
+
+                <ScrollView
+                  style={styles.transcriptScroll}
+                  contentContainerStyle={styles.transcriptScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  nestedScrollEnabled
+                >
+                  <Text
+                    style={[
+                      styles.transcriptText,
+                      !transcriptText && styles.transcriptEmptyText,
+                    ]}
+                  >
+                    {transcriptText ||
+                      "No transcript found for this recording."}
+                  </Text>
+                </ScrollView>
+              </View>
+
+              <Text style={styles.trackTitle}>
+                {recording?.file_name || "Audio Player"}
+              </Text>
+
+              <Text style={styles.artistText}>
+                {recording?.recordingType === "call"
+                  ? "Phone recording"
+                  : "Mic recording"}
+              </Text>
+
+              <View style={styles.controlsRow}>
+                <IconControlButton
+                  iconName="refresh"
+                  onPress={restartPlayback}
+                />
+
+                <IconControlButton
+                  iconName="play-skip-back"
+                  onPress={async () => {
+                    await player.seekTo(Math.max(currentTime - 10, 0));
+                  }}
+                />
+
+                <IconControlButton
+                  iconName={status.playing ? "pause" : "play"}
+                  primary
+                  onPress={handlePlayPause}
+                />
+
+                <IconControlButton
+                  iconName="play-skip-forward"
+                  onPress={async () => {
+                    await player.seekTo(Math.min(currentTime + 10, duration));
+                  }}
+                />
+
+                <IconControlButton
+                  iconName="chatbubble-ellipses-outline"
                   onPress={() =>
-                    navigation.navigate(ROUTES.EDIT_RECORDING, {
+                    navigation.navigate(ROUTES.CHATBOT, {
                       recording,
                     })
                   }
+                />
+              </View>
+
+              <View style={styles.progressSection}>
+                <View style={styles.timeRow}>
+                  <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+                  <Text style={styles.timeText}>{formatTime(duration)}</Text>
+                </View>
+
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0}
+                  maximumValue={duration || 1}
+                  value={currentTime}
+                  minimumTrackTintColor={theme.colors.purpleSoft}
+                  maximumTrackTintColor={theme.colors.surfaceMuted}
+                  thumbTintColor={theme.colors.textPrimary}
+                  onSlidingStart={() => {
+                    setIsSeeking(true);
+                    setSeekValue(status.currentTime || 0);
+                  }}
+                  onValueChange={(value) => {
+                    setSeekValue(value);
+                  }}
+                  onSlidingComplete={async (value) => {
+                    setSeekValue(value);
+                    await player.seekTo(value);
+
+                    setTimeout(() => {
+                      setIsSeeking(false);
+                    }, 200);
+                  }}
+                />
+              </View>
+            </>
+          ) : (
+            <View style={styles.recapFrame}>
+              <View style={styles.recapHeader}>
+                <View>
+                  <Text style={styles.recapTitle}>Recap</Text>
+                  <Text style={styles.recapSubtitle}>
+                    Saved memory from this recording
+                  </Text>
+                </View>
+
+                <Pressable
+                  style={styles.recapGenerateButton}
+                  onPress={handleGenerateRecap}
+                  disabled={recapLoading || !transcriptText}
                 >
                   <Ionicons
-                    name="create-outline"
+                    name="sparkles-outline"
                     size={14}
-                    color={theme.colors.textPrimary}
+                    color={theme.colors.white}
                   />
-                  <Text style={styles.copyButtonText}>Edit</Text>
+                  <Text style={styles.recapGenerateButtonText}>
+                    {recapLoading
+                      ? "Generating"
+                      : recap
+                      ? "Regenerate"
+                      : "Generate"}
+                  </Text>
                 </Pressable>
-
-                {transcriptText ? (
-                  <Pressable
-                    style={styles.copyButton}
-                    onPress={copyTranscriptToClipboard}
-                  >
-                    <Ionicons
-                      name="copy-outline"
-                      size={14}
-                      color={theme.colors.textPrimary}
-                    />
-                    <Text style={styles.copyButtonText}>
-                      {transcriptCopied ? "Copied" : "Copy"}
-                    </Text>
-                  </Pressable>
-                ) : null}
               </View>
-            </View>
-
-            <ScrollView
-              style={styles.transcriptScroll}
-              contentContainerStyle={styles.transcriptScrollContent}
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled
-            >
-              <Text
-                style={[
-                  styles.transcriptText,
-                  !transcriptText && styles.transcriptEmptyText,
-                ]}
+              <ScrollView
+                style={styles.recapScroll}
+                contentContainerStyle={styles.recapScrollContent}
+                showsVerticalScrollIndicator={false}
               >
-                {transcriptText || "No transcript found for this recording."}
-              </Text>
-            </ScrollView>
-          </View>
-
-          {activePanel === "recap" && recap ? (
-            <View style={styles.recapFrame}>
-              <Text style={styles.recapTitle}>Recap</Text>
-              <Text style={styles.recapText}>
-                {recap.summary || "Recap saved for this recording."}
-              </Text>
+                <Text style={styles.recapText}>
+                  Recap interface will go here.
+                </Text>
+              </ScrollView>
             </View>
-          ) : recapError ? (
-            <Text style={styles.recapErrorText}>{recapError}</Text>
-          ) : null}
-
-          <Text style={styles.trackTitle}>
-            {recording?.file_name || "Audio Player"}
-          </Text>
-
-          <Text style={styles.artistText}>
-            {recording?.recordingType === "call"
-              ? "Phone recording"
-              : "Mic recording"}
-          </Text>
-
-          <View style={styles.controlsRow}>
-            <IconControlButton iconName="refresh" onPress={restartPlayback} />
-
-            <IconControlButton
-              iconName="play-skip-back"
-              onPress={async () => {
-                await player.seekTo(Math.max(currentTime - 10, 0));
-              }}
-            />
-
-            <IconControlButton
-              iconName={status.playing ? "pause" : "play"}
-              primary
-              onPress={handlePlayPause}
-            />
-
-            <IconControlButton
-              iconName="play-skip-forward"
-              onPress={async () => {
-                await player.seekTo(Math.min(currentTime + 10, duration));
-              }}
-            />
-
-            <IconControlButton
-              iconName="chatbubble-ellipses-outline"
-              onPress={() =>
-                navigation.navigate(ROUTES.CHATBOT, {
-                  recording,
-                })
-              }
-            />
-          </View>
-
-          <View style={styles.progressSection}>
-            <View style={styles.timeRow}>
-              <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-              <Text style={styles.timeText}>{formatTime(duration)}</Text>
-            </View>
-
-            <Slider
-              style={styles.slider}
-              minimumValue={0}
-              maximumValue={duration || 1}
-              value={currentTime}
-              minimumTrackTintColor={theme.colors.purpleSoft}
-              maximumTrackTintColor={theme.colors.surfaceMuted}
-              thumbTintColor={theme.colors.textPrimary}
-              onSlidingStart={() => {
-                setIsSeeking(true);
-                setSeekValue(status.currentTime || 0);
-              }}
-              onValueChange={(value) => {
-                setSeekValue(value);
-              }}
-              onSlidingComplete={async (value) => {
-                setSeekValue(value);
-                await player.seekTo(value);
-
-                setTimeout(() => {
-                  setIsSeeking(false);
-                }, 200);
-              }}
-            />
-          </View>
+          )}
         </View>
       </ScrollView>
     </Screen>
@@ -465,7 +501,7 @@ const styles = StyleSheet.create({
 
   transcriptFrame: {
     width: "100%",
-    height: 320,
+    height: 260,
     borderRadius: 24,
     padding: 16,
     backgroundColor: theme.colors.surfaceSoft,
@@ -594,6 +630,7 @@ const styles = StyleSheet.create({
 
   recapFrame: {
     width: "100%",
+    minHeight: 527,
     borderRadius: 24,
     padding: 16,
     backgroundColor: theme.colors.surfaceSoft,
@@ -657,5 +694,18 @@ const styles = StyleSheet.create({
 
   panelTabTextActive: {
     color: theme.colors.textPrimary,
+  },
+
+  panelTabActive: {
+    backgroundColor: theme.colors.blue,
+  },
+
+  recapScroll: {
+    flex: 1,
+    width: "100%",
+  },
+
+  recapScrollContent: {
+    paddingBottom: 16,
   },
 });
