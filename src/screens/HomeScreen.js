@@ -156,7 +156,7 @@ export default function HomeScreen({ navigation }) {
     const { data: micRecordings, error: micError } = await supabase
       .from("mic_recordings")
       .select(
-        "id, customer_id, file_name, duration, full_transcript, original_file_name, created_at",
+        "id, customer_id, file_name, duration, full_transcript, original_file_name, created_at, recap",
       )
       .eq("customer_id", user.id);
 
@@ -170,7 +170,7 @@ export default function HomeScreen({ navigation }) {
     const { data: callRecordings, error: callError } = await supabase
       .from("call_recordings")
       .select(
-        "id, customer_id, file_name, duration, full_transcript, original_file_name, created_at",
+        "id, customer_id, file_name, duration, full_transcript, original_file_name, created_at, recap",
       )
       .eq("customer_id", user.id);
 

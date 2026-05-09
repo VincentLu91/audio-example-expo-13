@@ -21,6 +21,7 @@ import {
   setActivePlaybackStatus,
 } from "../services/playbackControlService";
 import { MicTranscriptionService } from "../services/micTranscriptionService";
+import { generateSavedRecap } from "../services/chatAgentService";
 
 const sharedPlaybackPlayer = createAudioPlayer(null);
 let loadedPlaybackSource = null;
@@ -68,6 +69,11 @@ export default function PlayerScreen({ route, navigation }) {
   const [transcriptCopied, setTranscriptCopied] = useState(false);
 
   const transcriptCopyTimeoutRef = useRef(null);
+
+  const [recap, setRecap] = useState(recording?.recap || null);
+  const [recapLoading, setRecapLoading] = useState(false);
+  const [recapError, setRecapError] = useState("");
+  const [activePanel, setActivePanel] = useState("player");
 
   const duration = status.duration || 0;
   const currentTime = isSeeking ? seekValue : status.currentTime || 0;
@@ -147,6 +153,11 @@ export default function PlayerScreen({ route, navigation }) {
     };
   }, []);
 
+  useEffect(() => {
+    setRecap(recording?.recap || null);
+    setRecapError("");
+  }, [recording?.id, recording?.recap]);
+
   async function stopMicRecordingBeforePlayback() {
     const micState = MicTranscriptionService.getState();
 
@@ -205,6 +216,40 @@ export default function PlayerScreen({ route, navigation }) {
     }, 1600);
   }
 
+  async function handleGenerateRecap() {
+    if (!recording || !transcriptText || recapLoading) {
+      return;
+    }
+
+    setRecapLoading(true);
+    setRecapError("");
+
+    try {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user?.id) {
+        throw new Error("Could not load current user.");
+      }
+
+      const generatedRecap = await generateSavedRecap({
+        recording,
+        transcriptText,
+        soundUrl: audioSource,
+        userId: user.id,
+      });
+
+      setRecap(generatedRecap);
+    } catch (error) {
+      console.error("Generate recap error:", error?.message || error);
+      setRecapError("Could not generate recap. Please try again.");
+    } finally {
+      setRecapLoading(false);
+    }
+  }
+
   return (
     <Screen>
       <ScrollView
@@ -213,6 +258,41 @@ export default function PlayerScreen({ route, navigation }) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.playerShell}>
+          <View style={styles.panelTabs}>
+            <Pressable
+              style={[
+                styles.panelTab,
+                activePanel === "player" && styles.panelTabActive,
+              ]}
+              onPress={() => setActivePanel("player")}
+            >
+              <Text
+                style={[
+                  styles.panelTabText,
+                  activePanel === "player" && styles.panelTabTextActive,
+                ]}
+              >
+                Player
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.panelTab,
+                activePanel === "recap" && styles.panelTabActive,
+              ]}
+              onPress={() => setActivePanel("recap")}
+            >
+              <Text
+                style={[
+                  styles.panelTabText,
+                  activePanel === "recap" && styles.panelTabTextActive,
+                ]}
+              >
+                Recap
+              </Text>
+            </Pressable>
+          </View>
           <View style={styles.transcriptFrame}>
             <View style={styles.transcriptHeader}>
               <Text style={styles.transcriptHeaderTitle}>Transcript</Text>
@@ -268,6 +348,17 @@ export default function PlayerScreen({ route, navigation }) {
               </Text>
             </ScrollView>
           </View>
+
+          {activePanel === "recap" && recap ? (
+            <View style={styles.recapFrame}>
+              <Text style={styles.recapTitle}>Recap</Text>
+              <Text style={styles.recapText}>
+                {recap.summary || "Recap saved for this recording."}
+              </Text>
+            </View>
+          ) : recapError ? (
+            <Text style={styles.recapErrorText}>{recapError}</Text>
+          ) : null}
 
           <Text style={styles.trackTitle}>
             {recording?.file_name || "Audio Player"}
@@ -499,5 +590,72 @@ const styles = StyleSheet.create({
   slider: {
     width: "100%",
     height: 36,
+  },
+
+  recapFrame: {
+    width: "100%",
+    borderRadius: 24,
+    padding: 16,
+    backgroundColor: theme.colors.surfaceSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginBottom: 24,
+  },
+
+  recapTitle: {
+    ...theme.typography.sectionTitle,
+    color: theme.colors.textPrimary,
+    marginBottom: 8,
+  },
+
+  recapText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: theme.colors.textPrimary,
+  },
+
+  recapErrorText: {
+    fontSize: 14,
+    color: theme.colors.textMuted,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+
+  panelTabs: {
+    width: "100%",
+    flexDirection: "row",
+    gap: 8,
+    padding: 4,
+    borderRadius: 999,
+    backgroundColor: theme.colors.surfaceSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginBottom: 20,
+  },
+
+  panelTab: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+
+  panelTab: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+
+  panelTabText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.textMuted,
+  },
+
+  panelTabTextActive: {
+    color: theme.colors.textPrimary,
   },
 });

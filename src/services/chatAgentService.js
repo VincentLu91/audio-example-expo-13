@@ -1,6 +1,7 @@
 import { supabase } from "../../lib/supabase";
 
-const DEFAULT_AGENT_BASE_URL = "https://next-supabase-login-email-a.vercel.app";
+const DEFAULT_AGENT_BASE_URL =
+  "https://b2c-agent-v1-staging-a8eed207afac.herokuapp.com";
 
 function getAgentBaseUrl() {
   const baseUrl =
@@ -17,43 +18,6 @@ export function getRecordingSoundUrl(recording) {
   return supabase.storage
     .from("recreate-ai-storage-bucket")
     .getPublicUrl(recording.original_file_name).data.publicUrl;
-}
-
-export function splitTranscriptIntoDocuments(transcriptText, chunkSize = 30) {
-  const trimmedTranscript = transcriptText?.trim();
-
-  if (!trimmedTranscript) {
-    return [];
-  }
-
-  const words = trimmedTranscript.split(/\s+/);
-  const chunks = [];
-  let currentChunk = [];
-
-  for (const word of words) {
-    if (currentChunk.length < chunkSize) {
-      currentChunk.push(word);
-    } else {
-      chunks.push(currentChunk.join(" "));
-      currentChunk = [word];
-    }
-  }
-
-  if (currentChunk.length > 0) {
-    chunks.push(currentChunk.join(" "));
-  }
-
-  return chunks.map((chunk, index) => ({
-    title: String(index + 1),
-    snippet: chunk,
-  }));
-}
-
-export function mapMessagesToAgentHistory(messages) {
-  return messages.map((message) => ({
-    role: message.sender === "User" ? "user" : "assistant",
-    content: message.message,
-  }));
 }
 
 export async function fetchChatHistory(userId, soundUrl) {
@@ -75,7 +39,12 @@ export async function fetchChatHistory(userId, soundUrl) {
 
   return (data || []).map((message) => ({
     message: message.message,
-    sender: message.sender,
+    sender:
+      message.sender === "assistant"
+        ? "ChatGPT"
+        : message.sender === "user"
+        ? "User"
+        : message.sender,
   }));
 }
 
@@ -101,26 +70,26 @@ export async function saveChatMessage({ message, sender, userId, soundUrl }) {
 export async function askRecordingAgent({
   message,
   transcriptText,
-  existingMessages,
   soundUrl,
+  userId,
+  recordingId,
+  recordingType = "mic",
 }) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
 
   try {
-    const apiMessages = mapMessagesToAgentHistory(existingMessages || []);
-
     const payload = {
-      query: message,
-      documents: splitTranscriptIntoDocuments(transcriptText || "", 30),
-      chat_history: apiMessages,
-      messages: apiMessages,
-      metadata: {
-        soundUrl,
-      },
+      recording_id: String(recordingId || soundUrl || "unknown-recording"),
+      recording_type: recordingType === "call" ? "call" : "mic",
+      sound_url: soundUrl,
+      user_id: userId,
+      user_message: message,
+      transcript_context: transcriptText || "",
+      platform: "expo",
     };
 
-    const response = await fetch(`${getAgentBaseUrl()}/api/agent`, {
+    const response = await fetch(`${getAgentBaseUrl()}/v1/agent/respond`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -131,23 +100,110 @@ export async function askRecordingAgent({
 
     const data = await response.json();
 
-    if (!response.ok) {
-      console.error("Agent response error:", data);
+    if (!response.ok || data?.status !== "ok") {
+      console.error("Agent v1 response error:", data);
       return "Sorry—I'm having trouble reaching the AI agent right now. Please try again.";
     }
 
-    return (
-      data?.text ||
-      data?.answer ||
-      data?.output ||
-      data?.reply ||
-      "(No response from agent)"
-    );
+    return data?.assistant_message || "(No response from agent)";
   } catch (error) {
-    console.error("Agent error:", error?.message || error);
-
+    console.error("Agent v1 error:", error?.message || error);
     return "Sorry—I'm having trouble reaching the AI agent right now. Please try again.";
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+function safeParseRecapJson(agentText) {
+  const cleanedText = String(agentText || "")
+    .replace(/^```json/i, "")
+    .replace(/^```/i, "")
+    .replace(/```$/i, "")
+    .trim();
+
+  try {
+    return JSON.parse(cleanedText);
+  } catch (error) {
+    return {
+      summary: cleanedText,
+      key_points: [],
+      action_items: [],
+      important_moments: [],
+      follow_up: [],
+    };
+  }
+}
+
+export async function generateSavedRecap({
+  recording,
+  transcriptText,
+  soundUrl,
+  userId,
+}) {
+  const trimmedTranscript = transcriptText?.trim();
+
+  if (!recording?.id) {
+    throw new Error("Missing recording id.");
+  }
+
+  if (!trimmedTranscript) {
+    throw new Error("Transcript is empty.");
+  }
+
+  if (!soundUrl) {
+    throw new Error("Missing sound URL.");
+  }
+
+  if (!userId) {
+    throw new Error("Missing user id.");
+  }
+
+  const recordingType = recording?.recordingType === "call" ? "call" : "mic";
+  const tableName =
+    recordingType === "call" ? "call_recordings" : "mic_recordings";
+
+  const recapPrompt = `
+Create a saved recap for this recording transcript.
+
+Return ONLY valid JSON. No markdown. No code fence. No extra explanation.
+
+Use this exact shape:
+{
+  "summary": "Short plain-English summary of the recording.",
+  "key_points": ["Important point 1", "Important point 2"],
+  "action_items": ["Action item 1", "Action item 2"],
+  "important_moments": ["Moment 1", "Moment 2"],
+  "follow_up": ["Follow-up 1", "Follow-up 2"]
+}
+
+Keep it useful, concise, and grounded only in the transcript.
+`;
+
+  const agentText = await askRecordingAgent({
+    message: recapPrompt,
+    transcriptText: trimmedTranscript,
+    soundUrl,
+    userId,
+    recordingId: recording.id,
+    recordingType,
+  });
+
+  if (!agentText || agentText.startsWith("Sorry—")) {
+    throw new Error("Could not generate recap.");
+  }
+
+  const recap = safeParseRecapJson(agentText);
+
+  const { error } = await supabase
+    .from(tableName)
+    .update({ recap })
+    .eq("id", recording.id)
+    .eq("customer_id", userId);
+
+  if (error) {
+    console.error("Error saving recap:", error.message);
+    throw new Error("Could not save recap.");
+  }
+
+  return recap;
 }

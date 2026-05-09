@@ -17,7 +17,6 @@ import {
   askRecordingAgent,
   fetchChatHistory,
   getRecordingSoundUrl,
-  saveChatMessage,
 } from "../services/chatAgentService";
 
 const STARTER_PROMPTS = [
@@ -130,18 +129,17 @@ export default function ChatBotScreen({ route }) {
     setMessages((currentMessages) => [...currentMessages, userMessage]);
     setUserInput("");
 
-    await saveChatMessage({
-      message: trimmedMessage,
-      sender: "User",
-      userId: currentUser.id,
-      soundUrl,
-    });
-
     const botResponse = await askRecordingAgent({
       message: trimmedMessage,
       transcriptText,
-      existingMessages: messages,
       soundUrl,
+      userId: currentUser.id,
+      recordingId:
+        recording?.id ||
+        recording?.recording_id ||
+        recording?.original_file_name ||
+        soundUrl,
+      recordingType: recording?.recordingType === "call" ? "call" : "mic",
     });
 
     const botMessage = {
@@ -150,14 +148,6 @@ export default function ChatBotScreen({ route }) {
     };
 
     setMessages((currentMessages) => [...currentMessages, botMessage]);
-
-    await saveChatMessage({
-      message: botResponse,
-      sender: "ChatGPT",
-      userId: currentUser.id,
-      soundUrl,
-    });
-
     setSending(false);
   }
 
