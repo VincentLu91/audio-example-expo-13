@@ -76,8 +76,9 @@ export async function askRecordingAgent({
   recordingType = "mic",
   persistMessages = true,
 }) {
+  const AGENT_TIMEOUT_MS = 25000;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45000);
+  const timeoutId = setTimeout(() => controller.abort(), AGENT_TIMEOUT_MS);
 
   try {
     const payload = {
@@ -100,16 +101,42 @@ export async function askRecordingAgent({
       signal: controller.signal,
     });
 
-    const data = await response.json();
+    const responseText = await response.text();
+
+    let data = null;
+
+    try {
+      data = responseText ? JSON.parse(responseText) : null;
+    } catch (parseError) {
+      console.error("Agent v1 non-JSON response:", {
+        status: response.status,
+        statusText: response.statusText,
+        bodyPreview: responseText?.slice(0, 300),
+      });
+
+      return "Sorry—the AI agent returned an unexpected response. Please try again.";
+    }
 
     if (!response.ok || data?.status !== "ok") {
-      console.error("Agent v1 response error:", data);
+      console.error("Agent v1 response error:", {
+        status: response.status,
+        statusText: response.statusText,
+        data,
+      });
+
       return "Sorry—I'm having trouble reaching the AI agent right now. Please try again.";
     }
 
     return data?.assistant_message || "(No response from agent)";
   } catch (error) {
+    if (error?.name === "AbortError") {
+      console.error(`Agent v1 timeout after ${AGENT_TIMEOUT_MS}ms.`);
+
+      return "Sorry—the AI agent took too long to respond. Please try again.";
+    }
+
     console.error("Agent v1 error:", error?.message || error);
+
     return "Sorry—I'm having trouble reaching the AI agent right now. Please try again.";
   } finally {
     clearTimeout(timeoutId);
