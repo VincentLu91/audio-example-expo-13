@@ -398,7 +398,7 @@ export default function MicRecordingScreen({ navigation }) {
             </View>
           </View>
 
-          <LiveAskBox transcriptText={transcriptText} />
+          <LiveAskBox transcriptText={transcriptText} recordingType="mic" />
 
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Recording name</Text>

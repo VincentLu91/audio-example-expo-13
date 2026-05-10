@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { supabase } from "../../lib/supabase";
 import {
   ActivityIndicator,
   Pressable,
@@ -12,7 +13,7 @@ import * as Clipboard from "expo-clipboard";
 import { askRecordingAgent } from "../services/chatAgentService";
 import { theme } from "../theme/theme";
 
-export default function LiveAskBox({ transcriptText }) {
+export default function LiveAskBox({ transcriptText, recordingType = "mic" }) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [isAsking, setIsAsking] = useState(false);
@@ -42,11 +43,24 @@ export default function LiveAskBox({ transcriptText }) {
     setErrorMessage("");
 
     try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user?.id) {
+        setErrorMessage("You must be logged in to use Ask Live.");
+        return;
+      }
+
       const response = await askRecordingAgent({
         message: cleanedQuestion,
         transcriptText: cleanedTranscript,
-        existingMessages: [],
-        soundUrl: "live-recording",
+        soundUrl: `live-${recordingType}-recording`,
+        userId: user.id,
+        recordingId: `live-${recordingType}-recording`,
+        recordingType,
+        persistMessages: false,
       });
 
       setAnswer(response);

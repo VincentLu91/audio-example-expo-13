@@ -433,40 +433,172 @@ export default function PlayerScreen({ route, navigation }) {
           ) : (
             <View style={styles.recapFrame}>
               <View style={styles.recapHeader}>
-                <View>
-                  <Text style={styles.recapTitle}>Recap</Text>
-                  <Text style={styles.recapSubtitle}>
-                    Saved memory from this recording
-                  </Text>
-                </View>
+                <View style={styles.recapHeader}>
+                  <View style={styles.recapHeaderTextBlock}>
+                    <Text style={styles.recapTitle}>Recap</Text>
+                    <Text style={styles.recapSubtitle}>
+                      Saved memory from this recording
+                    </Text>
+                  </View>
 
-                <Pressable
-                  style={styles.recapGenerateButton}
-                  onPress={handleGenerateRecap}
-                  disabled={recapLoading || !transcriptText}
-                >
-                  <Ionicons
-                    name="sparkles-outline"
-                    size={14}
-                    color={theme.colors.white}
-                  />
-                  <Text style={styles.recapGenerateButtonText}>
-                    {recapLoading
-                      ? "Generating"
-                      : recap
-                      ? "Regenerate"
-                      : "Generate"}
-                  </Text>
-                </Pressable>
+                  <Pressable
+                    onPress={handleGenerateRecap}
+                    disabled={recapLoading || !transcriptText}
+                    style={[
+                      styles.recapGenerateButton,
+                      (recapLoading || !transcriptText) &&
+                        styles.recapGenerateButtonDisabled,
+                    ]}
+                  >
+                    <Text style={styles.recapGenerateButtonText}>
+                      {recapLoading
+                        ? "Generating..."
+                        : recap
+                        ? "Regenerate"
+                        : "Generate"}
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
               <ScrollView
                 style={styles.recapScroll}
                 contentContainerStyle={styles.recapScrollContent}
                 showsVerticalScrollIndicator={false}
               >
-                <Text style={styles.recapText}>
-                  Recap interface will go here.
-                </Text>
+                {recapError ? (
+                  <Text style={styles.recapErrorText}>{recapError}</Text>
+                ) : null}
+
+                {!recap ? (
+                  <View style={styles.recapEmptyCard}>
+                    <Text style={styles.recapEmptyTitle}>No recap yet</Text>
+                    <Text style={styles.recapEmptyText}>
+                      Generate a saved recap so this recording becomes easier to
+                      remember later.
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.recapContentCard}>
+                    <Text style={styles.recapSectionTitle}>Summary</Text>
+                    <Text style={styles.recapText}>
+                      {recap?.summary || "No summary was generated."}
+                    </Text>
+
+                    {Array.isArray(recap?.key_points) &&
+                    recap.key_points.length > 0 ? (
+                      <View style={styles.recapSection}>
+                        <Text style={styles.recapSectionTitle}>Key points</Text>
+
+                        {recap.key_points.map((point, index) => (
+                          <View
+                            key={`key-point-${index}`}
+                            style={styles.recapBulletRow}
+                          >
+                            <Text style={styles.recapBulletDot}>•</Text>
+                            <Text style={styles.recapBulletText}>{point}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                    {Array.isArray(recap?.important_moments) &&
+                    recap.important_moments.length > 0 ? (
+                      <View style={styles.recapSection}>
+                        <Text style={styles.recapSectionTitle}>
+                          Important moments
+                        </Text>
+
+                        {recap.important_moments.map((moment, index) => {
+                          const momentTitle =
+                            typeof moment === "string"
+                              ? moment
+                              : moment?.moment || "";
+                          const momentTime =
+                            typeof moment === "string"
+                              ? ""
+                              : moment?.time || "";
+                          const whyItMatters =
+                            typeof moment === "string"
+                              ? ""
+                              : moment?.why_it_matters || "";
+
+                          return (
+                            <View
+                              key={`important-moment-${index}`}
+                              style={styles.recapMomentCard}
+                            >
+                              {momentTime ? (
+                                <Text style={styles.recapMomentTime}>
+                                  {momentTime}
+                                </Text>
+                              ) : null}
+
+                              <Text style={styles.recapMomentTitle}>
+                                {momentTitle}
+                              </Text>
+
+                              {whyItMatters ? (
+                                <Text style={styles.recapMomentText}>
+                                  {whyItMatters}
+                                </Text>
+                              ) : null}
+                            </View>
+                          );
+                        })}
+                      </View>
+                    ) : null}
+                    {Array.isArray(recap?.follow_ups) &&
+                    recap.follow_ups.length > 0 ? (
+                      <View style={styles.recapSection}>
+                        <Text style={styles.recapSectionTitle}>Follow-ups</Text>
+
+                        {recap.follow_ups.map((item, index) => (
+                          <View
+                            key={`follow-up-${index}`}
+                            style={styles.recapBulletRow}
+                          >
+                            <Text style={styles.recapBulletDot}>•</Text>
+                            <Text style={styles.recapBulletText}>{item}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                    {Array.isArray(recap?.important_details) &&
+                    recap.important_details.length > 0 ? (
+                      <View style={styles.recapSection}>
+                        <Text style={styles.recapSectionTitle}>
+                          Important details
+                        </Text>
+
+                        {recap.important_details.map((detail, index) => (
+                          <View
+                            key={`important-detail-${index}`}
+                            style={styles.recapBulletRow}
+                          >
+                            <Text style={styles.recapBulletDot}>•</Text>
+                            <Text style={styles.recapBulletText}>{detail}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                    {Array.isArray(recap?.things_to_remember) &&
+                    recap.things_to_remember.length > 0 ? (
+                      <View style={styles.recapSection}>
+                        <Text style={styles.recapSectionTitle}>
+                          Things to remember
+                        </Text>
+
+                        {recap.things_to_remember.map((item, index) => (
+                          <View
+                            key={`thing-to-remember-${index}`}
+                            style={styles.recapMemoryCard}
+                          >
+                            <Text style={styles.recapMemoryText}>{item}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                  </View>
+                )}
               </ScrollView>
             </View>
           )}
@@ -630,7 +762,7 @@ const styles = StyleSheet.create({
 
   recapFrame: {
     width: "100%",
-    minHeight: 527,
+    height: 527,
     borderRadius: 24,
     padding: 16,
     backgroundColor: theme.colors.surfaceSoft,
@@ -639,10 +771,51 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
 
+  recapHeader: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 16,
+    marginBottom: 18,
+  },
+
+  recapHeaderTextBlock: {
+    flex: 1,
+  },
+
   recapTitle: {
-    ...theme.typography.sectionTitle,
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: "800",
     color: theme.colors.textPrimary,
-    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
+
+  recapSubtitle: {
+    marginTop: 6,
+    fontSize: 15,
+    lineHeight: 21,
+    color: theme.colors.textMuted,
+  },
+
+  recapGenerateButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.blue,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+
+  recapGenerateButtonDisabled: {
+    opacity: 0.6,
+  },
+
+  recapGenerateButtonText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: theme.colors.textPrimary,
   },
 
   recapText: {
@@ -707,5 +880,115 @@ const styles = StyleSheet.create({
 
   recapScrollContent: {
     paddingBottom: 16,
+  },
+
+  recapEmptyCard: {
+    paddingVertical: 42,
+    paddingHorizontal: 22,
+    borderRadius: 24,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: "center",
+  },
+
+  recapEmptyTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: theme.colors.textPrimary,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+
+  recapEmptyText: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: theme.colors.textMuted,
+    textAlign: "center",
+  },
+
+  recapContentCard: {
+    padding: 20,
+    borderRadius: 24,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+
+  recapSectionTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: theme.colors.textPrimary,
+    marginBottom: 8,
+  },
+
+  recapSection: {
+    marginTop: 24,
+  },
+
+  recapBulletRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginBottom: 10,
+  },
+
+  recapBulletDot: {
+    fontSize: 18,
+    lineHeight: 24,
+    color: theme.colors.textPrimary,
+  },
+
+  recapBulletText: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 24,
+    color: theme.colors.textPrimary,
+  },
+
+  recapMomentCard: {
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: theme.colors.surfaceSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginBottom: 12,
+  },
+
+  recapMomentTime: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.colors.textMuted,
+    marginBottom: 6,
+  },
+
+  recapMomentTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    lineHeight: 22,
+    color: theme.colors.textPrimary,
+  },
+
+  recapMomentText: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: theme.colors.textMuted,
+    marginTop: 6,
+  },
+
+  recapMemoryCard: {
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: theme.colors.surfaceSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginBottom: 12,
+  },
+
+  recapMemoryText: {
+    fontSize: 15,
+    lineHeight: 23,
+    fontWeight: "600",
+    color: theme.colors.textPrimary,
   },
 });

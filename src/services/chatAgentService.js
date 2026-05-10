@@ -74,6 +74,7 @@ export async function askRecordingAgent({
   userId,
   recordingId,
   recordingType = "mic",
+  persistMessages = true,
 }) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 45000);
@@ -87,6 +88,7 @@ export async function askRecordingAgent({
       user_message: message,
       transcript_context: transcriptText || "",
       platform: "expo",
+      persist_messages: persistMessages,
     };
 
     const response = await fetch(`${getAgentBaseUrl()}/v1/agent/respond`, {
@@ -127,9 +129,10 @@ function safeParseRecapJson(agentText) {
     return {
       summary: cleanedText,
       key_points: [],
-      action_items: [],
       important_moments: [],
-      follow_up: [],
+      follow_ups: [],
+      important_details: [],
+      things_to_remember: [],
     };
   }
 }
@@ -163,20 +166,37 @@ export async function generateSavedRecap({
     recordingType === "call" ? "call_recordings" : "mic_recordings";
 
   const recapPrompt = `
-Create a saved recap for this recording transcript.
+Create a concise personal memory recap for this recording.
 
-Return ONLY valid JSON. No markdown. No code fence. No extra explanation.
-
-Use this exact shape:
+Return ONLY valid JSON in this exact shape:
 {
-  "summary": "Short plain-English summary of the recording.",
-  "key_points": ["Important point 1", "Important point 2"],
-  "action_items": ["Action item 1", "Action item 2"],
-  "important_moments": ["Moment 1", "Moment 2"],
-  "follow_up": ["Follow-up 1", "Follow-up 2"]
+  "summary": "",
+  "key_points": [],
+  "important_moments": [
+    {
+      "time": "",
+      "moment": "",
+      "why_it_matters": ""
+    }
+  ],
+  "follow_ups": [],
+  "important_details": [],
+  "things_to_remember": []
 }
 
-Keep it useful, concise, and grounded only in the transcript.
+Rules:
+- Do not include markdown.
+- Do not include a code fence.
+- Do not invent details.
+- If a section has nothing useful, return an empty array.
+- Focus on what the user would want to remember later.
+- Keep the summary short: 2 to 4 sentences.
+- key_points should capture the main ideas.
+- important_moments should capture decisions, commitments, dates, names, numbers, emotional turning points, warnings, or anything the user may want to find again later.
+- important_details should capture concrete facts like names, dates, amounts, places, deadlines, or specific requirements.
+- follow_ups should only include actual next actions mentioned or clearly implied.
+- things_to_remember should be written like memory notes for the user.
+- For important_moments, include a rough timestamp only if the transcript contains timing or enough context. Otherwise leave "time" empty.
 `;
 
   const agentText = await askRecordingAgent({
@@ -186,6 +206,7 @@ Keep it useful, concise, and grounded only in the transcript.
     userId,
     recordingId: recording.id,
     recordingType,
+    persistMessages: false,
   });
 
   if (!agentText || agentText.startsWith("Sorry—")) {

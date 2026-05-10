@@ -614,7 +614,10 @@ export default function PhoneRecordingScreen({ navigation }) {
             </View>
           </View>
 
-          <LiveAskBox transcriptText={liveTranscriptText} />
+          <LiveAskBox
+            transcriptText={liveTranscriptText}
+            recordingType="call"
+          />
 
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Save recording</Text>
