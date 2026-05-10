@@ -92,14 +92,12 @@ export default function PhoneRecordingScreen({ navigation }) {
   const [successMessage, setSuccessMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [transcriptCopied, setTranscriptCopied] = useState(false);
+  const [completedRecordingSnapshot, setCompletedRecordingSnapshot] =
+    useState(null);
   const transcriptCopyTimeoutRef = useRef(null);
   const scrollViewRef = useRef(null);
 
   useEffect(() => {
-    PhoneTranscriptionService.reset();
-    setPhoneTranscription(PhoneTranscriptionService.getState());
-    callCreditDeductedRef.current = false;
-
     const unsubscribe = PhoneTranscriptionService.subscribe(
       setPhoneTranscription,
     );
@@ -117,13 +115,17 @@ export default function PhoneRecordingScreen({ navigation }) {
         transcriptionStatus: currentTranscriptionState.callStatus,
       });
 
+      const currentCallStatusText = (
+        currentTranscriptionState.callStatus || ""
+      ).toLowerCase();
+
       const shouldReconnect =
         nextAppState === "active" &&
         callSession &&
         !socketOpen &&
-        currentTranscriptionState.callStatus !== "completed" &&
-        currentTranscriptionState.callStatus !== "connecting" &&
-        currentTranscriptionState.callStatus !== "reconnecting";
+        !currentCallStatusText.includes("complete") &&
+        currentCallStatusText !== "connecting" &&
+        currentCallStatusText !== "reconnecting";
 
       if (shouldReconnect) {
         console.log(
@@ -177,8 +179,34 @@ export default function PhoneRecordingScreen({ navigation }) {
   }, []);
 
   useEffect(() => {
+    const info = phoneTranscription.callRecordingInfo;
+
+    const statusText = String(
+      info?.recordingStatus || phoneTranscription.callStatus || "",
+    ).toLowerCase();
+
+    const hasCompletedRecordingInfo =
+      info && (statusText.includes("complete") || Boolean(info.recordingUrl));
+
+    if (hasCompletedRecordingInfo) {
+      setCompletedRecordingSnapshot(info);
+    }
+  }, [phoneTranscription.callRecordingInfo, phoneTranscription.callStatus]);
+
+  useEffect(() => {
     async function deductCompletedCallCredit() {
-      if (!phoneTranscription.callRecordingInfo) {
+      const deductionStatusText = (
+        phoneTranscription.callRecordingInfo?.recordingStatus ||
+        phoneTranscription.callStatus ||
+        ""
+      ).toLowerCase();
+
+      const isCompletedForDeduction =
+        deductionStatusText.includes("completed") ||
+        deductionStatusText.includes("complete") ||
+        Boolean(phoneTranscription.callRecordingInfo?.recordingUrl);
+
+      if (!isCompletedForDeduction) {
         return;
       }
 
@@ -243,31 +271,63 @@ export default function PhoneRecordingScreen({ navigation }) {
 
   const [callsAvailable, setCallsAvailable] = useState(null);
   const callCreditDeductedRef = useRef(false);
+
+  const resetPhoneRecordingScreen = useCallback(() => {
+    PhoneTranscriptionService.reset();
+    setPhoneNumber("");
+    setFilename("");
+    setCallStatus("Not started");
+    setErrorMessage("");
+    setTranscript("");
+    setIsStartingCall(false);
+    isStartingCallRef.current = false;
+    callCreditDeductedRef.current = false;
+    setCallSession(null);
+    setPhoneTranscription(PhoneTranscriptionService.getState());
+    setSuccessMessage("");
+    setIsSaving(false);
+    setCompletedRecordingSnapshot(null);
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
-      PhoneTranscriptionService.reset();
-      setPhoneTranscription(PhoneTranscriptionService.getState());
+      resetPhoneRecordingScreen();
 
-      setCallSession(null);
-      setCallStatus("Not started");
-      setErrorMessage("");
-      setSuccessMessage("");
-      setIsStartingCall(false);
-      setIsSaving(false);
-
-      isStartingCallRef.current = false;
-      callCreditDeductedRef.current = false;
-    }, []),
+      return () => {
+        resetPhoneRecordingScreen();
+      };
+    }, [resetPhoneRecordingScreen]),
   );
 
-  const completedRecording = phoneTranscription.callRecordingInfo;
+  useEffect(() => {
+    const info = phoneTranscription.callRecordingInfo;
+
+    const statusText = String(
+      info?.recordingStatus || phoneTranscription.callStatus || "",
+    ).toLowerCase();
+
+    const hasCompletedRecordingInfo =
+      info && (statusText.includes("complete") || Boolean(info.recordingUrl));
+
+    if (hasCompletedRecordingInfo) {
+      setCompletedRecordingSnapshot(info);
+    }
+  }, [phoneTranscription.callRecordingInfo, phoneTranscription.callStatus]);
+
+  const completedRecording =
+    completedRecordingSnapshot || phoneTranscription.callRecordingInfo;
   const liveTranscriptText = phoneTranscription.transcript?.trim() || "";
 
-  const isPhoneRecordingComplete = Boolean(
-    completedRecording?.recordingUrl &&
-      completedRecording?.recordingSid &&
-      completedRecording?.callSid,
-  );
+  const completedStatusText = (
+    completedRecording?.recordingStatus ||
+    phoneTranscription.callStatus ||
+    ""
+  ).toLowerCase();
+
+  const isPhoneRecordingComplete =
+    completedStatusText.includes("completed") ||
+    completedStatusText.includes("complete") ||
+    Boolean(completedRecording?.recordingUrl);
 
   const displayedCallStatus =
     phoneTranscription.callStatus && phoneTranscription.callStatus !== "idle"
@@ -298,23 +358,6 @@ export default function PhoneRecordingScreen({ navigation }) {
     const date = new Date(timestamp);
     const duration = Number(durationInSeconds) || 0;
     return new Date(date.getTime() + duration * 1000).toUTCString();
-  }
-
-  function resetPhoneRecordingScreen() {
-    PhoneTranscriptionService.reset();
-
-    setPhoneNumber("");
-    setFilename("");
-    setCallStatus("Not started");
-    setErrorMessage("");
-    setTranscript("");
-    setIsStartingCall(false);
-    isStartingCallRef.current = false;
-    callCreditDeductedRef.current = false;
-    setCallSession(null);
-    setPhoneTranscription(PhoneTranscriptionService.getState());
-    setSuccessMessage("");
-    setIsSaving(false);
   }
 
   async function handleSavePhoneRecording() {
@@ -409,22 +452,25 @@ export default function PhoneRecordingScreen({ navigation }) {
       return;
     }
 
-    const { error } = await supabase.from("call_recordings").insert([
-      {
-        customer_id: user.id,
-        file_name: cleanedFilename,
-        duration: durationText,
-        full_transcript: phoneTranscription.transcript,
-
-        telnyx_call_control_id: completedRecording.callSid,
-        recording_id: completedRecording.recordingSid,
-        original_file_name: storageFileName,
-        durationMillis,
-        start_time: completedRecording.recordingStartTime,
-        end_time: recordingEndTime,
-        react_native_event: completedRecording.recordingStatus,
-      },
-    ]);
+    const { data: savedRecording, error } = await supabase
+      .from("call_recordings")
+      .insert([
+        {
+          customer_id: user.id,
+          file_name: cleanedFilename,
+          duration: durationText,
+          full_transcript: phoneTranscription.transcript,
+          telnyx_call_control_id: completedRecording.callSid,
+          recording_id: completedRecording.recordingSid,
+          original_file_name: storageFileName,
+          durationMillis,
+          start_time: completedRecording.recordingStartTime,
+          end_time: recordingEndTime,
+          react_native_event: completedRecording.recordingStatus,
+        },
+      ])
+      .select()
+      .single();
 
     if (error) {
       console.error("Failed to save phone recording:", error);
@@ -433,8 +479,19 @@ export default function PhoneRecordingScreen({ navigation }) {
       return;
     }
 
+    const playerRecording = {
+      ...savedRecording,
+      recordingType: "call",
+    };
+
     resetPhoneRecordingScreen();
-    navigation.goBack();
+
+    navigation.navigate("Home", {
+      screen: "Player",
+      params: {
+        recording: playerRecording,
+      },
+    });
   }
 
   async function handleStartPhoneRecording() {
@@ -466,6 +523,8 @@ export default function PhoneRecordingScreen({ navigation }) {
     ) {
       await MicTranscriptionService.stopRecording();
     }
+
+    setCompletedRecordingSnapshot(null);
 
     setErrorMessage("");
     setSuccessMessage("");
@@ -552,6 +611,19 @@ export default function PhoneRecordingScreen({ navigation }) {
           <Text style={styles.title}>Phone Recording</Text>
           <Text style={styles.statusText}>
             Phone transcript status: {phoneTranscription.callStatus || "Idle"}
+          </Text>
+
+          <Text style={styles.helperText}>
+            Has recording info:{" "}
+            {phoneTranscription.callRecordingInfo ? "yes" : "no"}
+          </Text>
+          <Text style={styles.helperText}>
+            Recording status:{" "}
+            {phoneTranscription.callRecordingInfo?.recordingStatus || "none"}
+          </Text>
+          <Text style={styles.helperText}>
+            Recording URL:{" "}
+            {phoneTranscription.callRecordingInfo?.recordingUrl ? "yes" : "no"}
           </Text>
 
           <Text style={styles.subtitle}>
@@ -788,7 +860,10 @@ export default function PhoneRecordingScreen({ navigation }) {
 
           <Pressable
             style={styles.secondaryButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              resetPhoneRecordingScreen();
+              navigation.navigate("Home");
+            }}
           >
             <Text style={styles.secondaryButtonText}>Back to recordings</Text>
           </Pressable>

@@ -140,9 +140,8 @@ export const PhoneTranscriptionService = {
 
           notify();
 
-          if (result?.recordingStatus === "completed") {
-            this.stop();
-          }
+          // Let the screen decide when to reset/stop the service.
+          // Stopping immediately on "completed" can cut off late final state updates.
         }
       } catch (error) {
         console.error("Failed to process phone transcription message:", error);
