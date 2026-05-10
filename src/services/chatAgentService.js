@@ -1,11 +1,11 @@
 import { supabase } from "../../lib/supabase";
 
-const DEFAULT_AGENT_BASE_URL =
-  "https://b2c-agent-v1-staging-a8eed207afac.herokuapp.com";
-
 function getAgentBaseUrl() {
-  const baseUrl =
-    process.env.EXPO_PUBLIC_AGENT_BASE_URL || DEFAULT_AGENT_BASE_URL;
+  const baseUrl = process.env.EXPO_PUBLIC_AGENT_BASE_URL;
+
+  if (!baseUrl) {
+    throw new Error("Missing EXPO_PUBLIC_AGENT_BASE_URL.");
+  }
 
   return baseUrl.replace(/\/$/, "");
 }
