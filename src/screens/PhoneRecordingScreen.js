@@ -291,12 +291,8 @@ export default function PhoneRecordingScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      resetPhoneRecordingScreen();
-
-      return () => {
-        resetPhoneRecordingScreen();
-      };
-    }, [resetPhoneRecordingScreen]),
+      return undefined;
+    }, []),
   );
 
   useEffect(() => {
