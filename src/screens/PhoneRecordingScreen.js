@@ -262,7 +262,13 @@ export default function PhoneRecordingScreen({ navigation }) {
 
   const completedRecording = phoneTranscription.callRecordingInfo;
   const liveTranscriptText = phoneTranscription.transcript?.trim() || "";
-  const isPhoneRecordingComplete = Boolean(completedRecording);
+
+  const isPhoneRecordingComplete = Boolean(
+    completedRecording?.recordingUrl &&
+      completedRecording?.recordingSid &&
+      completedRecording?.callSid,
+  );
+
   const displayedCallStatus =
     phoneTranscription.callStatus && phoneTranscription.callStatus !== "idle"
       ? getCallSessionStatusLabel(phoneTranscription.callStatus)
