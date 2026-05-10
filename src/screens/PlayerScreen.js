@@ -37,6 +37,23 @@ function formatTime(seconds) {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
+function formatRecapItem(item) {
+  if (typeof item === "string") return item;
+  if (!item || typeof item !== "object") return String(item || "");
+
+  return (
+    item.text ||
+    item.point ||
+    item.detail ||
+    item.action ||
+    item.memory ||
+    item.note ||
+    item.title ||
+    item.moment ||
+    Object.values(item).filter(Boolean).join(" — ")
+  );
+}
+
 function IconControlButton({ iconName, onPress, primary = false }) {
   return (
     <Pressable
@@ -495,7 +512,9 @@ export default function PlayerScreen({ route, navigation }) {
                             style={styles.recapBulletRow}
                           >
                             <Text style={styles.recapBulletDot}>•</Text>
-                            <Text style={styles.recapBulletText}>{point}</Text>
+                            <Text style={styles.recapBulletText}>
+                              • {formatRecapItem(point)}
+                            </Text>
                           </View>
                         ))}
                       </View>
@@ -508,18 +527,27 @@ export default function PlayerScreen({ route, navigation }) {
                         </Text>
 
                         {recap.important_moments.map((moment, index) => {
-                          const momentTitle =
-                            typeof moment === "string"
-                              ? moment
-                              : moment?.moment || "";
-                          const momentTime =
-                            typeof moment === "string"
-                              ? ""
-                              : moment?.time || "";
-                          const whyItMatters =
-                            typeof moment === "string"
-                              ? ""
-                              : moment?.why_it_matters || "";
+                          const isMomentObject =
+                            moment &&
+                            typeof moment === "object" &&
+                            !Array.isArray(moment);
+
+                          const momentTitle = isMomentObject
+                            ? moment.moment ||
+                              moment.title ||
+                              formatRecapItem(moment)
+                            : String(moment || "");
+
+                          const momentTime = isMomentObject
+                            ? moment.time || moment.timestamp || ""
+                            : "";
+
+                          const whyItMatters = isMomentObject
+                            ? moment.why_it_matters ||
+                              moment.reason ||
+                              moment.context ||
+                              ""
+                            : "";
 
                           return (
                             <View
@@ -557,7 +585,9 @@ export default function PlayerScreen({ route, navigation }) {
                             style={styles.recapBulletRow}
                           >
                             <Text style={styles.recapBulletDot}>•</Text>
-                            <Text style={styles.recapBulletText}>{item}</Text>
+                            <Text style={styles.recapBulletText}>
+                              • {formatRecapItem(item)}
+                            </Text>
                           </View>
                         ))}
                       </View>
@@ -575,7 +605,9 @@ export default function PlayerScreen({ route, navigation }) {
                             style={styles.recapBulletRow}
                           >
                             <Text style={styles.recapBulletDot}>•</Text>
-                            <Text style={styles.recapBulletText}>{detail}</Text>
+                            <Text style={styles.recapBulletText}>
+                              • {formatRecapItem(detail)}
+                            </Text>
                           </View>
                         ))}
                       </View>
@@ -592,7 +624,9 @@ export default function PlayerScreen({ route, navigation }) {
                             key={`thing-to-remember-${index}`}
                             style={styles.recapMemoryCard}
                           >
-                            <Text style={styles.recapMemoryText}>{item}</Text>
+                            <Text style={styles.recapMemoryText}>
+                              {formatRecapItem(item)}
+                            </Text>
                           </View>
                         ))}
                       </View>
