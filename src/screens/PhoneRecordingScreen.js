@@ -9,8 +9,9 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import * as Clipboard from "expo-clipboard";
+import { useFocusEffect } from "@react-navigation/native";
 import { stopActivePlayback } from "../services/playbackControlService";
 
 import Screen from "../components/Screen";
@@ -95,6 +96,10 @@ export default function PhoneRecordingScreen({ navigation }) {
   const scrollViewRef = useRef(null);
 
   useEffect(() => {
+    PhoneTranscriptionService.reset();
+    setPhoneTranscription(PhoneTranscriptionService.getState());
+    callCreditDeductedRef.current = false;
+
     const unsubscribe = PhoneTranscriptionService.subscribe(
       setPhoneTranscription,
     );
@@ -173,10 +178,7 @@ export default function PhoneRecordingScreen({ navigation }) {
 
   useEffect(() => {
     async function deductCompletedCallCredit() {
-      if (
-        phoneTranscription.callStatus !== "completed" ||
-        !phoneTranscription.callRecordingInfo
-      ) {
+      if (!phoneTranscription.callRecordingInfo) {
         return;
       }
 
@@ -205,12 +207,23 @@ export default function PhoneRecordingScreen({ navigation }) {
       callCreditDeductedRef.current = true;
 
       try {
-        const result = await deductCallCreditAfterCompletedCall({
-          customerId: user.id,
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError || !user?.id) {
+          throw new Error(
+            "You must be logged in before deducting call credit.",
+          );
+        }
+
+        const creditResult = await deductCallCreditAfterCompletedCall({
+          userId: user.id,
         });
 
-        console.log("Call credit deduction result:", result);
-        setCallsAvailable(result.callsAvailable);
+        console.log("Call credit deduction result:", creditResult);
+        setCallsAvailable(creditResult.callsAvailable);
       } catch (error) {
         console.error("Failed to deduct call credit:", error);
         setErrorMessage("Call completed, but call credit deduction failed.");
@@ -230,10 +243,30 @@ export default function PhoneRecordingScreen({ navigation }) {
 
   const [callsAvailable, setCallsAvailable] = useState(null);
   const callCreditDeductedRef = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      PhoneTranscriptionService.reset();
+      setPhoneTranscription(PhoneTranscriptionService.getState());
+
+      setCallSession(null);
+      setCallStatus("Not started");
+      setErrorMessage("");
+      setSuccessMessage("");
+      setIsStartingCall(false);
+      setIsSaving(false);
+
+      isStartingCallRef.current = false;
+      callCreditDeductedRef.current = false;
+    }, []),
+  );
+
   const completedRecording = phoneTranscription.callRecordingInfo;
   const liveTranscriptText = phoneTranscription.transcript?.trim() || "";
-  const isPhoneRecordingComplete =
-    phoneTranscription.callStatus === "completed" && completedRecording;
+  const isPhoneRecordingComplete = Boolean(completedRecording);
+  const displayedCallStatus =
+    phoneTranscription.callStatus && phoneTranscription.callStatus !== "idle"
+      ? getCallSessionStatusLabel(phoneTranscription.callStatus)
+      : callStatus;
 
   const hasActiveOrCompletedCall =
     isStartingCall || callSession || isPhoneRecordingComplete;
@@ -411,6 +444,12 @@ export default function PhoneRecordingScreen({ navigation }) {
       return;
     }
 
+    if (callsAvailable !== null && callsAvailable <= 0) {
+      setErrorMessage("You do not have any phone call credits available.");
+      setCallStatus("No call credits available");
+      return;
+    }
+
     await stopActivePlayback();
 
     const micState = MicTranscriptionService.getState();
@@ -423,7 +462,14 @@ export default function PhoneRecordingScreen({ navigation }) {
     }
 
     setErrorMessage("");
+    setSuccessMessage("");
     setCallSession(null);
+    setTranscript("");
+    callCreditDeductedRef.current = false;
+
+    PhoneTranscriptionService.reset();
+    setPhoneTranscription(PhoneTranscriptionService.getState());
+
     isStartingCallRef.current = true;
     setIsStartingCall(true);
     setCallStatus("Starting call...");
@@ -439,10 +485,18 @@ export default function PhoneRecordingScreen({ navigation }) {
         );
       }
 
-      const customerId = process.env.EXPO_PUBLIC_DEV_CUSTOMER_ID;
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user?.id) {
+        throw new Error("You must be logged in before starting a phone call.");
+      }
+
       const result = await startPhoneCall({
         phoneNumber: cleanedPhoneNumber,
-        customerId,
+        userId: user.id,
       });
 
       console.log("Phone call service result:", result);
@@ -455,6 +509,7 @@ export default function PhoneRecordingScreen({ navigation }) {
       setErrorMessage("Could not start the phone recording.");
       setCallStatus("Failed to start");
     } finally {
+      isStartingCallRef.current = false;
       setIsStartingCall(false);
     }
   }
@@ -541,7 +596,7 @@ export default function PhoneRecordingScreen({ navigation }) {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Recording status</Text>
 
-            <Text style={styles.statusText}>{callStatus}</Text>
+            <Text style={styles.statusText}>{displayedCallStatus}</Text>
 
             <Text style={styles.cardDescription}>
               Later this will show whether the call is dialing, recording,
@@ -619,74 +674,76 @@ export default function PhoneRecordingScreen({ navigation }) {
             recordingType="call"
           />
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Save recording</Text>
+          {isPhoneRecordingComplete ? (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Save recording</Text>
 
-            <Text style={styles.label}>Recording name</Text>
-            <TextInput
-              value={filename}
-              onChangeText={setFilename}
-              placeholder="Name this recording"
-              placeholderTextColor={theme.colors.textMuted}
-              style={styles.input}
-              onFocus={() => {
-                setTimeout(() => {
-                  scrollViewRef.current?.scrollToEnd({ animated: true });
-                }, 250);
+              <Text style={styles.label}>Recording name</Text>
+              <TextInput
+                value={filename}
+                onChangeText={setFilename}
+                placeholder="Name this recording"
+                placeholderTextColor={theme.colors.textMuted}
+                style={styles.input}
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                  }, 250);
 
-                setTimeout(() => {
-                  scrollViewRef.current?.scrollToEnd({ animated: true });
-                }, 650);
-              }}
-            />
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                  }, 650);
+                }}
+              />
 
-            <Text style={styles.helperText}>
-              This section will be used after the call is complete.
-            </Text>
-
-            {isPhoneRecordingComplete ? (
-              <>
-                <SessionRow
-                  label="Recording status"
-                  value={completedRecording.recordingStatus || "Unknown"}
-                />
-                <SessionRow
-                  label="Recording SID"
-                  value={completedRecording.recordingSid || "Unknown"}
-                />
-                <SessionRow
-                  label="Call SID"
-                  value={completedRecording.callSid || "Unknown"}
-                />
-                <SessionRow
-                  label="Duration"
-                  value={
-                    completedRecording.recordingDuration
-                      ? `${completedRecording.recordingDuration} seconds`
-                      : "Unknown"
-                  }
-                />
-                <Pressable
-                  style={[
-                    styles.primaryButton,
-                    (!isPhoneRecordingComplete || isSaving) &&
-                      styles.primaryButtonDisabled,
-                  ]}
-                  onPress={handleSavePhoneRecording}
-                  disabled={!isPhoneRecordingComplete || isSaving}
-                >
-                  <Text style={styles.primaryButtonText}>
-                    {isSaving ? "Saving..." : "Save phone recording"}
-                  </Text>
-                </Pressable>
-              </>
-            ) : (
               <Text style={styles.helperText}>
-                Complete the call first, then recording details will appear
-                here.
+                This section will be used after the call is complete.
               </Text>
-            )}
-          </View>
+
+              {isPhoneRecordingComplete ? (
+                <>
+                  <SessionRow
+                    label="Recording status"
+                    value={completedRecording.recordingStatus || "Unknown"}
+                  />
+                  <SessionRow
+                    label="Recording SID"
+                    value={completedRecording.recordingSid || "Unknown"}
+                  />
+                  <SessionRow
+                    label="Call SID"
+                    value={completedRecording.callSid || "Unknown"}
+                  />
+                  <SessionRow
+                    label="Duration"
+                    value={
+                      completedRecording.recordingDuration
+                        ? `${completedRecording.recordingDuration} seconds`
+                        : "Unknown"
+                    }
+                  />
+                  <Pressable
+                    style={[
+                      styles.primaryButton,
+                      (!isPhoneRecordingComplete || isSaving) &&
+                        styles.primaryButtonDisabled,
+                    ]}
+                    onPress={handleSavePhoneRecording}
+                    disabled={!isPhoneRecordingComplete || isSaving}
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {isSaving ? "Saving..." : "Save phone recording"}
+                    </Text>
+                  </Pressable>
+                </>
+              ) : (
+                <Text style={styles.helperText}>
+                  Complete the call first, then recording details will appear
+                  here.
+                </Text>
+              )}
+            </View>
+          ) : null}
 
           {!isPhoneRecordingComplete ? (
             <Pressable
@@ -711,6 +768,15 @@ export default function PhoneRecordingScreen({ navigation }) {
                   ? "Call started"
                   : "Start phone recording"}
               </Text>
+            </Pressable>
+          ) : null}
+
+          {callSession && !isPhoneRecordingComplete ? (
+            <Pressable
+              style={styles.secondaryButton}
+              onPress={resetPhoneRecordingScreen}
+            >
+              <Text style={styles.secondaryButtonText}>Reset current call</Text>
             </Pressable>
           ) : null}
 

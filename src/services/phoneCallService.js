@@ -2,7 +2,6 @@ const NEXT_API_BASE_URL = "https://next-firebase-login-email.vercel.app";
 
 async function readJsonResponse(response) {
   const text = await response.text();
-
   let data = null;
 
   try {
@@ -19,7 +18,6 @@ async function readJsonResponse(response) {
     });
 
     const serverError = data?.error || data?.message || data || text;
-
     const message =
       typeof serverError === "string"
         ? serverError
@@ -31,22 +29,21 @@ async function readJsonResponse(response) {
   return data;
 }
 
-export async function startPhoneCall({ phoneNumber, customerId }) {
+export async function startPhoneCall({ phoneNumber, userId }) {
   if (!phoneNumber) {
     throw new Error("Phone number is required.");
   }
 
-  if (!customerId) {
-    throw new Error("Customer ID is required.");
+  if (!userId) {
+    throw new Error("User ID is required.");
   }
 
   const url =
     `${NEXT_API_BASE_URL}/api/dialTwilio` +
     `?to=${encodeURIComponent(phoneNumber)}` +
-    `&customer_id=${encodeURIComponent(customerId)}`;
+    `&user_id=${encodeURIComponent(userId)}`;
 
   const response = await fetch(url);
-
   const data = await readJsonResponse(response);
 
   return {
@@ -55,27 +52,27 @@ export async function startPhoneCall({ phoneNumber, customerId }) {
     providerCallId: data.callSID,
     status: "call_start_requested",
     phoneNumber,
-    customerId,
+    userId,
     startedAt: new Date().toISOString(),
     raw: data,
   };
 }
 
-export async function deductCallCreditAfterCompletedCall({ customerId }) {
-  if (!customerId) {
-    throw new Error("Customer ID is required.");
+export async function deductCallCreditAfterCompletedCall({ userId }) {
+  if (!userId) {
+    throw new Error("User ID is required.");
   }
 
   const url =
     `${NEXT_API_BASE_URL}/api/calls-token` +
-    `?user=${encodeURIComponent(customerId)}`;
+    `?user_id=${encodeURIComponent(userId)}`;
 
   const response = await fetch(url);
   const data = await readJsonResponse(response);
 
   return {
     success: true,
-    callsAvailable: data?.data?.[0]?.num_calls ?? null,
+    callsAvailable: data?.num_calls ?? data?.data?.[0]?.num_calls ?? null,
     raw: data,
   };
 }
