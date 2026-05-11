@@ -94,6 +94,8 @@ export default function PhoneRecordingScreen({ navigation }) {
   const [transcriptCopied, setTranscriptCopied] = useState(false);
   const [completedRecordingSnapshot, setCompletedRecordingSnapshot] =
     useState(null);
+  const [completedTranscriptSnapshot, setCompletedTranscriptSnapshot] =
+    useState("");
   const transcriptCopyTimeoutRef = useRef(null);
   const scrollViewRef = useRef(null);
 
@@ -272,6 +274,7 @@ export default function PhoneRecordingScreen({ navigation }) {
     setSuccessMessage("");
     setIsSaving(false);
     setCompletedRecordingSnapshot(null);
+    setCompletedTranscriptSnapshot("");
 
     setTimeout(() => {
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
@@ -296,12 +299,24 @@ export default function PhoneRecordingScreen({ navigation }) {
 
     if (hasCompletedRecordingInfo) {
       setCompletedRecordingSnapshot(info);
+      setCompletedTranscriptSnapshot(
+        (currentTranscript) =>
+          phoneTranscription.transcript || currentTranscript || "",
+      );
     }
-  }, [phoneTranscription.callRecordingInfo, phoneTranscription.callStatus]);
+  }, [
+    phoneTranscription.callRecordingInfo,
+    phoneTranscription.callStatus,
+    phoneTranscription.transcript,
+  ]);
 
   const completedRecording =
     completedRecordingSnapshot || phoneTranscription.callRecordingInfo;
-  const liveTranscriptText = phoneTranscription.transcript?.trim() || "";
+
+  const savedTranscriptText =
+    completedTranscriptSnapshot || phoneTranscription.transcript || "";
+
+  const liveTranscriptText = savedTranscriptText.trim();
 
   const completedStatusText = (
     completedRecording?.recordingStatus ||
@@ -444,7 +459,7 @@ export default function PhoneRecordingScreen({ navigation }) {
           customer_id: user.id,
           file_name: cleanedFilename,
           duration: durationText,
-          full_transcript: phoneTranscription.transcript,
+          full_transcript: savedTranscriptText,
           telnyx_call_control_id: completedRecording.callSid,
           recording_id: completedRecording.recordingSid,
           recording_url: completedRecording.recordingUrl,
