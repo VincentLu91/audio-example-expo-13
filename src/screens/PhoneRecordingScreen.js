@@ -494,6 +494,28 @@ export default function PhoneRecordingScreen({ navigation }) {
     });
   }
 
+  function waitForPhoneTranscriptionSocket(timeoutMs = 3000) {
+    return new Promise((resolve, reject) => {
+      const startedAt = Date.now();
+
+      const checkSocket = () => {
+        if (PhoneTranscriptionService.isSocketOpen()) {
+          resolve();
+          return;
+        }
+
+        if (Date.now() - startedAt >= timeoutMs) {
+          reject(new Error("Phone transcription websocket did not connect."));
+          return;
+        }
+
+        setTimeout(checkSocket, 50);
+      };
+
+      checkSocket();
+    });
+  }
+
   async function handleStartPhoneRecording() {
     if (isStartingCallRef.current) {
       return;
@@ -543,11 +565,20 @@ export default function PhoneRecordingScreen({ navigation }) {
       try {
         PhoneTranscriptionService.initialize();
         PhoneTranscriptionService.startCall();
+
+        setCallStatus("Connecting transcript...");
+        await waitForPhoneTranscriptionSocket();
+
+        console.log(
+          "Phone transcription socket is open. Dialing phone call now.",
+        );
       } catch (transcriptionError) {
         console.error(
           "Failed to start phone transcription websocket:",
           transcriptionError,
         );
+
+        throw new Error("Could not connect the phone transcript listener.");
       }
 
       const {
