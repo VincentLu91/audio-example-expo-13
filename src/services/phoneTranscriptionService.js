@@ -1,5 +1,8 @@
-const PHONE_TRANSCRIPTION_WS_URL =
-  "wss://call-transcribe-heroku-b15b1132d70f.herokuapp.com";
+const PHONE_TRANSCRIPTION_WS_URL = process.env.EXPO_PUBLIC_WSS_URL;
+
+if (!PHONE_TRANSCRIPTION_WS_URL) {
+  throw new Error("Missing EXPO_PUBLIC_WSS_URL.");
+}
 
 const listeners = new Set();
 

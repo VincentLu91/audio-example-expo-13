@@ -1,4 +1,11 @@
-const NEXT_API_BASE_URL = "https://next-firebase-login-email.vercel.app";
+const NEXT_API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.replace(
+  /\/$/,
+  "",
+);
+
+if (!NEXT_API_BASE_URL) {
+  throw new Error("Missing EXPO_PUBLIC_API_BASE_URL.");
+}
 
 async function readJsonResponse(response) {
   const text = await response.text();
