@@ -462,6 +462,7 @@ export default function PhoneRecordingScreen({ navigation }) {
           full_transcript: phoneTranscription.transcript,
           telnyx_call_control_id: completedRecording.callSid,
           recording_id: completedRecording.recordingSid,
+          recording_url: completedRecording.recordingUrl,
           original_file_name: storageFileName,
           durationMillis,
           start_time: completedRecording.recordingStartTime,
