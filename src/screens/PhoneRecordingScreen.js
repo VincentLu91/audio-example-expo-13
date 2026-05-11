@@ -287,6 +287,10 @@ export default function PhoneRecordingScreen({ navigation }) {
     setSuccessMessage("");
     setIsSaving(false);
     setCompletedRecordingSnapshot(null);
+
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, 0);
   }, []);
 
   useFocusEffect(
