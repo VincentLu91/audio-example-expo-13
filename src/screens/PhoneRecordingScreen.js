@@ -179,21 +179,6 @@ export default function PhoneRecordingScreen({ navigation }) {
   }, []);
 
   useEffect(() => {
-    const info = phoneTranscription.callRecordingInfo;
-
-    const statusText = String(
-      info?.recordingStatus || phoneTranscription.callStatus || "",
-    ).toLowerCase();
-
-    const hasCompletedRecordingInfo =
-      info && (statusText.includes("complete") || Boolean(info.recordingUrl));
-
-    if (hasCompletedRecordingInfo) {
-      setCompletedRecordingSnapshot(info);
-    }
-  }, [phoneTranscription.callRecordingInfo, phoneTranscription.callStatus]);
-
-  useEffect(() => {
     async function deductCompletedCallCredit() {
       const deductionStatusText = (
         phoneTranscription.callRecordingInfo?.recordingStatus ||

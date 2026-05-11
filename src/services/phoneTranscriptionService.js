@@ -64,6 +64,17 @@ function closeSocket({ sendStop = true } = {}) {
   }
 }
 
+function hasCompletedRecordingState() {
+  const statusText = String(
+    state.callRecordingInfo?.recordingStatus || state.callStatus || "",
+  ).toLowerCase();
+
+  return (
+    statusText.includes("complete") ||
+    Boolean(state.callRecordingInfo?.recordingUrl)
+  );
+}
+
 export const PhoneTranscriptionService = {
   initialize() {
     if (state.initialized) {
@@ -160,7 +171,7 @@ export const PhoneTranscriptionService = {
         currentStatus: state.callStatus,
       });
 
-      if (state.callStatus === "completed") {
+      if (hasCompletedRecordingState()) {
         return;
       }
 
@@ -175,7 +186,7 @@ export const PhoneTranscriptionService = {
         wasClean: event?.wasClean,
       });
 
-      if (state.callStatus !== "completed") {
+      if (!hasCompletedRecordingState()) {
         state.callStatus = `websocket_closed_${event?.code || "unknown"}`;
         notify();
       }
