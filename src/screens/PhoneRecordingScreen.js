@@ -96,6 +96,7 @@ export default function PhoneRecordingScreen({ navigation }) {
     useState(null);
   const [completedTranscriptSnapshot, setCompletedTranscriptSnapshot] =
     useState("");
+  const [liveAskBoxResetKey, setLiveAskBoxResetKey] = useState(0);
   const transcriptCopyTimeoutRef = useRef(null);
   const scrollViewRef = useRef(null);
   const durableCallPollingTimeoutRef = useRef(null);
@@ -284,6 +285,7 @@ export default function PhoneRecordingScreen({ navigation }) {
     setIsSaving(false);
     setCompletedRecordingSnapshot(null);
     setCompletedTranscriptSnapshot("");
+    setLiveAskBoxResetKey((currentKey) => currentKey + 1);
 
     setTimeout(() => {
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
@@ -931,6 +933,7 @@ export default function PhoneRecordingScreen({ navigation }) {
           </View>
 
           <LiveAskBox
+            key={liveAskBoxResetKey}
             transcriptText={liveTranscriptText}
             recordingType="call"
           />
