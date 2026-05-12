@@ -85,7 +85,9 @@ export default function PhoneRecordingScreen({ navigation }) {
   const [transcript, setTranscript] = useState("");
   const [isStartingCall, setIsStartingCall] = useState(false);
   const isStartingCallRef = useRef(false);
-  const [callSession, setCallSession] = useState(null);
+  const [callSession, setCallSession] = useState(
+    () => PhoneTranscriptionService.getState().activeCallSession,
+  );
   const [phoneTranscription, setPhoneTranscription] = useState(
     PhoneTranscriptionService.getState(),
   );
@@ -114,6 +116,28 @@ export default function PhoneRecordingScreen({ navigation }) {
   useEffect(() => {
     phoneTranscriptionRef.current = phoneTranscription;
   }, [phoneTranscription]);
+
+  useEffect(() => {
+    if (phoneTranscription.activeCallSession) {
+      setCallSession(phoneTranscription.activeCallSession);
+    }
+  }, [phoneTranscription.activeCallSession]);
+
+  useEffect(() => {
+    const activeCallSession =
+      phoneTranscription.activeCallSession ||
+      PhoneTranscriptionService.getState().activeCallSession;
+
+    if (!activeCallSession?.providerCallId || isPhoneRecordingComplete) {
+      return;
+    }
+
+    startDurableCallRecordingPolling(activeCallSession.providerCallId);
+
+    return () => {
+      stopDurableCallRecordingPolling();
+    };
+  }, [phoneTranscription.activeCallSession, isPhoneRecordingComplete]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextAppState) => {
@@ -748,9 +772,9 @@ export default function PhoneRecordingScreen({ navigation }) {
       });
 
       console.log("Phone call service result:", result);
+      PhoneTranscriptionService.setActiveCallSession(result);
       setCallSession(result);
       setCallStatus("Call start requested");
-
       startDurableCallRecordingPolling(result.providerCallId);
     } catch (error) {
       PhoneTranscriptionService.reset();

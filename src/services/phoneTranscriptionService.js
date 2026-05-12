@@ -16,6 +16,7 @@ const state = {
   callRecordingInfo: null,
   initialized: false,
   sessionId: null,
+  activeCallSession: null,
 };
 
 function notify() {
@@ -86,6 +87,7 @@ export const PhoneTranscriptionService = {
     state.callStatus = null;
     state.callRecordingInfo = null;
     state.sessionId = null;
+    state.activeCallSession = null;
     currentSessionId = null;
 
     notify();
@@ -228,8 +230,19 @@ export const PhoneTranscriptionService = {
     state.callRecordingInfo = null;
     state.initialized = false;
     state.sessionId = null;
+    state.activeCallSession = null;
     currentSessionId = null;
 
+    notify();
+  },
+
+  setActiveCallSession(callSession) {
+    state.activeCallSession = callSession;
+    notify();
+  },
+
+  clearActiveCallSession() {
+    state.activeCallSession = null;
     notify();
   },
 
