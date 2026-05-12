@@ -395,25 +395,41 @@ export default function PhoneRecordingScreen({ navigation }) {
     setErrorMessage("");
     setSuccessMessage("");
 
+    const websocketRecording = phoneTranscription.callRecordingInfo || {};
+
     const recordingDuration =
-      parseFloat(completedRecording.recordingDuration) || 0;
+      parseFloat(completedRecording.recordingDuration) ||
+      parseFloat(websocketRecording.recordingDuration) ||
+      0;
+
+    const existingDurationMillis =
+      Number(completedRecording.durationMillis) ||
+      Number(websocketRecording.durationMillis) ||
+      0;
+
     const durationMillis =
       recordingDuration > 0
         ? Math.floor(recordingDuration * 1000)
-        : Number(completedRecording.durationMillis) || null;
+        : existingDurationMillis > 0
+        ? existingDurationMillis
+        : null;
 
     const durationText =
       durationMillis && durationMillis > 0
         ? formatDurationFromMillis(durationMillis)
-        : completedRecording.duration || null;
+        : completedRecording.duration || websocketRecording.duration || null;
+
+    const recordingStartTime =
+      completedRecording.recordingStartTime ||
+      websocketRecording.recordingStartTime ||
+      null;
 
     const recordingEndTime =
-      recordingDuration > 0
-        ? addDurationToTimestamp(
-            completedRecording.recordingStartTime,
-            recordingDuration,
-          )
-        : completedRecording.recordingEndTime || null;
+      recordingDuration > 0 && recordingStartTime
+        ? addDurationToTimestamp(recordingStartTime, recordingDuration)
+        : completedRecording.recordingEndTime ||
+          websocketRecording.recordingEndTime ||
+          null;
 
     const { data: sessionData, error: sessionError } =
       await supabase.auth.getSession();
@@ -483,7 +499,7 @@ export default function PhoneRecordingScreen({ navigation }) {
         recording_url: completedRecording.recordingUrl,
         original_file_name: storageFileName,
         durationMillis,
-        start_time: completedRecording.recordingStartTime,
+        start_time: recordingStartTime,
         end_time: recordingEndTime,
         react_native_event: completedRecording.recordingStatus,
       })
