@@ -172,7 +172,8 @@ export default function HomeScreen({ navigation }) {
       .select(
         "id, customer_id, file_name, duration, full_transcript, original_file_name, created_at, recap",
       )
-      .eq("customer_id", user.id);
+      .eq("customer_id", user.id)
+      .not("original_file_name", "is", null);
 
     if (callError) {
       console.error("Call recordings error:", callError);

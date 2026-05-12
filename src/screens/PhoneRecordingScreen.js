@@ -98,6 +98,9 @@ export default function PhoneRecordingScreen({ navigation }) {
     useState("");
   const transcriptCopyTimeoutRef = useRef(null);
   const scrollViewRef = useRef(null);
+  const durableCallPollingTimeoutRef = useRef(null);
+  const durableCallPollingRunIdRef = useRef(0);
+  const phoneTranscriptionRef = useRef(phoneTranscription);
 
   useEffect(() => {
     const unsubscribe = PhoneTranscriptionService.subscribe(
@@ -106,6 +109,10 @@ export default function PhoneRecordingScreen({ navigation }) {
 
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    phoneTranscriptionRef.current = phoneTranscription;
+  }, [phoneTranscription]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextAppState) => {
@@ -260,6 +267,8 @@ export default function PhoneRecordingScreen({ navigation }) {
   const callCreditDeductedRef = useRef(false);
 
   const resetPhoneRecordingScreen = useCallback(() => {
+    stopDurableCallRecordingPolling();
+
     PhoneTranscriptionService.reset();
     setPhoneNumber("");
     setFilename("");
@@ -388,12 +397,23 @@ export default function PhoneRecordingScreen({ navigation }) {
 
     const recordingDuration =
       parseFloat(completedRecording.recordingDuration) || 0;
-    const durationMillis = Math.floor(recordingDuration * 1000);
-    const durationText = formatDurationFromMillis(durationMillis);
-    const recordingEndTime = addDurationToTimestamp(
-      completedRecording.recordingStartTime,
-      recordingDuration,
-    );
+    const durationMillis =
+      recordingDuration > 0
+        ? Math.floor(recordingDuration * 1000)
+        : Number(completedRecording.durationMillis) || null;
+
+    const durationText =
+      durationMillis && durationMillis > 0
+        ? formatDurationFromMillis(durationMillis)
+        : completedRecording.duration || null;
+
+    const recordingEndTime =
+      recordingDuration > 0
+        ? addDurationToTimestamp(
+            completedRecording.recordingStartTime,
+            recordingDuration,
+          )
+        : completedRecording.recordingEndTime || null;
 
     const { data: sessionData, error: sessionError } =
       await supabase.auth.getSession();
@@ -454,22 +474,21 @@ export default function PhoneRecordingScreen({ navigation }) {
 
     const { data: savedRecording, error } = await supabase
       .from("call_recordings")
-      .insert([
-        {
-          customer_id: user.id,
-          file_name: cleanedFilename,
-          duration: durationText,
-          full_transcript: savedTranscriptText,
-          telnyx_call_control_id: completedRecording.callSid,
-          recording_id: completedRecording.recordingSid,
-          recording_url: completedRecording.recordingUrl,
-          original_file_name: storageFileName,
-          durationMillis,
-          start_time: completedRecording.recordingStartTime,
-          end_time: recordingEndTime,
-          react_native_event: completedRecording.recordingStatus,
-        },
-      ])
+      .update({
+        customer_id: user.id,
+        file_name: cleanedFilename,
+        duration: durationText,
+        full_transcript: savedTranscriptText,
+        recording_id: completedRecording.recordingSid,
+        recording_url: completedRecording.recordingUrl,
+        original_file_name: storageFileName,
+        durationMillis,
+        start_time: completedRecording.recordingStartTime,
+        end_time: recordingEndTime,
+        react_native_event: completedRecording.recordingStatus,
+      })
+      .eq("telnyx_call_control_id", completedRecording.callSid)
+      .eq("customer_id", user.id)
       .select()
       .single();
 
@@ -515,6 +534,120 @@ export default function PhoneRecordingScreen({ navigation }) {
 
       checkSocket();
     });
+  }
+
+  async function fetchDurableCallRecordingByCallSid(callSid) {
+    if (!callSid) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from("call_recordings")
+      .select(
+        "id, customer_id, telnyx_call_control_id, recording_id, recording_url, react_native_event, full_transcript, duration, durationMillis, start_time, end_time, created_at",
+      )
+      .eq("telnyx_call_control_id", callSid)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Failed to fetch durable call recording:", error);
+      return null;
+    }
+
+    console.log("Durable call recording lookup result:", data);
+    return data;
+  }
+
+  function stopDurableCallRecordingPolling() {
+    durableCallPollingRunIdRef.current += 1;
+
+    if (durableCallPollingTimeoutRef.current) {
+      clearTimeout(durableCallPollingTimeoutRef.current);
+      durableCallPollingTimeoutRef.current = null;
+    }
+  }
+
+  function isDurableCallRecordingComplete(row) {
+    const statusText = String(row?.react_native_event || "").toLowerCase();
+
+    return statusText.includes("complete") || Boolean(row?.recording_url);
+  }
+
+  function buildCompletedRecordingFromDurableRow(row) {
+    const durationMillis = Number(row?.durationMillis) || 0;
+
+    return {
+      callSid: row.telnyx_call_control_id,
+      recordingSid: row.recording_id,
+      recordingUrl: row.recording_url,
+      recordingStatus: row.react_native_event || "completed",
+      recordingDuration: durationMillis > 0 ? durationMillis / 1000 : null,
+      duration: row.duration,
+      durationMillis: row.durationMillis,
+      recordingStartTime: row.start_time || row.created_at,
+      recordingEndTime: row.end_time,
+    };
+  }
+
+  function startDurableCallRecordingPolling(callSid) {
+    if (!callSid) {
+      return;
+    }
+
+    stopDurableCallRecordingPolling();
+
+    const runId = durableCallPollingRunIdRef.current;
+    let attempts = 0;
+
+    async function poll() {
+      if (runId !== durableCallPollingRunIdRef.current) {
+        return;
+      }
+
+      attempts += 1;
+
+      const row = await fetchDurableCallRecordingByCallSid(callSid);
+
+      console.log("Durable call recording poll:", {
+        attempts,
+        status: row?.react_native_event,
+        hasRecordingUrl: Boolean(row?.recording_url),
+        hasTranscript: Boolean(row?.full_transcript),
+      });
+
+      if (row && isDurableCallRecordingComplete(row)) {
+        console.log("Durable call recording completed:", row);
+
+        setCompletedRecordingSnapshot(
+          buildCompletedRecordingFromDurableRow(row),
+        );
+
+        setCompletedTranscriptSnapshot((currentTranscript) => {
+          return (
+            phoneTranscriptionRef.current?.transcript ||
+            currentTranscript ||
+            row.full_transcript ||
+            ""
+          );
+        });
+
+        setCallStatus("Completed");
+        durableCallPollingTimeoutRef.current = null;
+        return;
+      }
+
+      if (attempts >= 40) {
+        console.log(
+          "Durable call recording polling stopped after max attempts.",
+        );
+        durableCallPollingTimeoutRef.current = null;
+        return;
+      }
+
+      durableCallPollingTimeoutRef.current = setTimeout(poll, 3000);
+    }
+
+    poll();
   }
 
   async function handleStartPhoneRecording() {
@@ -599,6 +732,8 @@ export default function PhoneRecordingScreen({ navigation }) {
       console.log("Phone call service result:", result);
       setCallSession(result);
       setCallStatus("Call start requested");
+
+      startDurableCallRecordingPolling(result.providerCallId);
     } catch (error) {
       PhoneTranscriptionService.reset();
 
