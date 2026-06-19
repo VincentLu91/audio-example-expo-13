@@ -127,8 +127,16 @@ async function connectSocket() {
 
           if (!transcript || !data.end_of_turn) return;
 
-          const finalText = data.speaker_label
-            ? `Speaker ${data.speaker_label}: ${transcript}`
+          const rawSpeakerLabel =
+            typeof data.speaker_label === "string"
+              ? data.speaker_label.trim()
+              : "";
+
+          const shouldShowSpeakerLabel =
+            rawSpeakerLabel && rawSpeakerLabel.toUpperCase() !== "PENDING";
+
+          const finalText = shouldShowSpeakerLabel
+            ? `Speaker ${rawSpeakerLabel}: ${transcript}`
             : transcript;
 
           appendTranscript(finalText);
